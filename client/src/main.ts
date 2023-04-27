@@ -52,10 +52,18 @@ window.addEventListener("load", () => {
 // ///////////////////////////////////////////////
 
 // canvas coordinate system.
-const getPointInCanvas = (e: MouseEvent, canvas: HTMLCanvasElement) => {
-  // const rect: DOMRect = canvas.getBoundingClientRect();
-  const rect: DOMRect = container.getBoundingClientRect();
+const handleGetPointInCanvas = (e: MouseEvent, canvas: HTMLCanvasElement) => {
+  const rect: DOMRect = canvas.getBoundingClientRect();
+  // const rect: DOMRect = container.getBoundingClientRect();
   return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+};
+
+const handleClearCanvas = () => {
+  canvasCtx.clearRect(0, 0, canvasRef.width, canvasRef.height);
+  canvasEventAtom.previousPoint = null;
+  canvasEventAtom.currentPoint = { x: 0, y: 0 };
+  canvasEventAtom.mouseView = MouseView.Default;
+  canvasRef.style.cursor = canvasEventAtom.mouseView;
 };
 
 const canvasEventAtom: CanvasEventAtom = {
@@ -78,7 +86,7 @@ canvasRef?.addEventListener("mousedown", (event: MouseEvent) => {
   canvasRef.style.cursor = canvasEventAtom.mouseView;
   canvasEventAtom.offsetX = event.offsetX;
   canvasEventAtom.offsetY = event.offsetY;
-  canvasEventAtom.currentPoint = getPointInCanvas(event, canvasRef);
+  canvasEventAtom.currentPoint = handleGetPointInCanvas(event, canvasRef);
   canvasEventAtom.previousPoint = structuredClone(canvasEventAtom.currentPoint);
 });
 
@@ -91,7 +99,7 @@ canvasRef?.addEventListener("mouseup", (event: MouseEvent) => {
 });
 
 canvasRef?.addEventListener("mousemove", (event: MouseEvent) => {
-  canvasEventAtom.currentPoint = getPointInCanvas(event, canvasRef);
+  canvasEventAtom.currentPoint = handleGetPointInCanvas(event, canvasRef);
   const lineWidth = 4;
   const lineColor = "yellow";
 
@@ -219,6 +227,7 @@ socket.on("chat_message", (msg) => {
 controlsClearButton?.addEventListener("click", (event) => {
   event.preventDefault();
   console.info(event.target, "Clearing canvas");
+  handleClearCanvas();
 });
 controlsColorPickerInput?.addEventListener("click", (event) => {
   console.info(event.target, "Picking color");
