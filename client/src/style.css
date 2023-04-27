@@ -28,6 +28,15 @@
   background-color: #ff333370 !important;
 }
 
+.wrapper {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: space-between;
+  width: 100vw;
+  height: 100vh;
+  overflow: auto;
+}
+
 a {
   font-weight: 500;
   color: #646cff;
@@ -39,27 +48,26 @@ a:hover {
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
 }
 
 h1 {
-  font-size: 3.2em;
+  font-size: larger;
   line-height: 1.1;
 }
 
 #app {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 2rem;
+  /* padding-block: 2rem; */
   text-align: center;
 }
 
 .logo {
+  font-family: monospace;
   height: 6em;
-  padding: 1.5em;
+  padding: 1em;
   will-change: filter;
   transition: filter 300ms;
 }
@@ -82,10 +90,6 @@ h1 {
   flex-direction: column;
 }
 
-/* button { border-radius: 8px; border: 1px solid transparent; padding: 0.6em 1.2em; font-size: 1em; font-weight: 500; font-family: inherit; background-color: #1a1a1a; cursor: pointer; transition: border-color 0.25s; } */
-/* button:hover { border-color: #646cff; } */
-/* button:focus, button:focus-visible { outline: 4px auto -webkit-focus-ring-color; } */
-
 .svg-icon {
   stroke: currentColor;
   fill: none;
@@ -98,14 +102,31 @@ h1 {
 
 aside {
   background: rgba(0, 0, 0, 0.15);
-  border-radius: 1rem;
+  border-radius: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem;
 }
 
 aside #messagesListRef {
   height: 88vh;
   border: 0px solid red;
-  border-radius: 1rem;
-  padding: 0.5rem;
+  border-radius: 0.5rem;
+}
+
+aside .controls {
+  place-self: start;
+  padding: 1rem;
+  display: grid;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+aside .controls > * {
+  border: 1px solid #2d3748;
+  width: 100%;
+  place-self: start;
+  border-radius: 0.2rem;
 }
 
 aside #messagesListRef > #formRef {
@@ -114,7 +135,9 @@ aside #messagesListRef > #formRef {
 }
 
 .canvas-container {
+  margin-top: 8rem;
   position: relative;
+  min-width: 57vw;
   width: 100%;
   height: 0;
   padding-bottom: 56.25%; /* set a 16:9 aspect ratio */
@@ -126,7 +149,7 @@ aside #messagesListRef > #formRef {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: whitesmoke;
+  background: rgba(0, 0, 0, 0.15);
 }
 
 #formRef {
@@ -142,10 +165,10 @@ aside #messagesListRef > #formRef {
 #inputRef {
   border: 3px solid #1a202c20;
   height: 2rem;
-  font-size: 0.75rem;
+  font-size: small;
   padding: 0 1rem;
   flex-grow: 1;
-  border-radius: 0.7rem;
+  border-radius: 0.3rem;
   margin: 0.25rem;
 }
 
@@ -161,6 +184,7 @@ aside #messagesListRef > #formRef {
 
 #messagesListRef > li {
   padding: 0.5rem 1rem;
+  font-size: small;
 }
 
 #messagesListRef > li:nth-child(odd) {
@@ -178,9 +202,12 @@ aside #messagesListRef > #formRef {
   /* border-radius: 3px; */
 }
 
+button {
+  border: none;
+}
+
 /* Default styles */
 button #sendRef {
-  position: absolute;
   bottom: -1.5rem;
   right: 1rem;
   padding: 0.25rem;
@@ -188,7 +215,7 @@ button #sendRef {
   color: #a1a1aa;
   text-align: center;
   background-color: #fff;
-  border: 1px solid #d2d2d7;
+  /* border: 1px solid #d2d2d7; */
   transition: all 0.2s ease-in-out;
   outline: none;
   cursor: default;
@@ -260,6 +287,95 @@ button:hover {
     color: #747bff;
   }
   .canvas-container canvas {
-    background-color: #2d3748;
+    background-color: whitesmoke;
   }
+}
+button,
+input,
+optgroup,
+select,
+textarea {
+  color: inherit;
+  font-family: inherit;
+  font-size: 100%;
+  font-weight: inherit;
+  line-height: inherit;
+  margin: 0;
+  padding: 0;
+}
+button,
+select {
+  text-transform: none;
+}
+[type="button"],
+[type="reset"],
+[type="submit"],
+button {
+  -webkit-appearance: button;
+  background-color: transparent;
+  background-image: none;
+}
+:-moz-focusring {
+  outline: auto;
+}
+:-moz-ui-invalid {
+  box-shadow: none;
+}
+
+::file-selector-button:hover,
+button:hover,
+input:is(
+    [type="reset"],
+    [type="button"],
+    [type="submit"],
+    [type="color"]
+  ):hover {
+  color: -moz-buttonhovertext;
+  background-color: -moz-buttonhoverface;
+}
+
+::file-selector-button:active:hover,
+button:active:hover,
+input:is(
+    [type="reset"],
+    [type="button"],
+    [type="submit"],
+    [type="color"]
+  ):active:hover {
+  border-style: inset;
+  color: -moz-buttonactivetext;
+  background-color: -moz-buttonactiveface;
+}
+
+/* ::-moz-focus-inner { */
+/* Note this padding only affects the -moz-focus-inner ring, not the button itself */
+/*   padding-block: 0; */
+/*   padding-inline: 2px; */
+/*   border: 1px dotted transparent; */
+/* } */
+
+/* :focus-visible::-moz-focus-inner { */
+/*   border-color: currentColor; */
+/* } */
+
+:is(:disabled, :disabled:active)::file-selector-button,
+button:is(:disabled, :disabled:active),
+input:is([type="reset"], [type="button"], [type="submit"], [type="color"]):is(
+    :disabled,
+    :disabled:active
+  ),
+select:is(:disabled, :disabled:active) > button {
+  border-style: outset;
+  cursor: unset;
+}
+
+:is(:disabled, :disabled:active)::file-selector-button,
+button:is(:disabled, :disabled:active),
+input:is([type="reset"], [type="button"], [type="submit"]):is(
+    :disabled,
+    :disabled:active
+  ),
+select:is(:disabled, :disabled:active) > button {
+  color: GrayText;
+  background-color: -moz-ButtonDisabledFace;
 }

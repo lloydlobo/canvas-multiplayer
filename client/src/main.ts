@@ -128,25 +128,33 @@ sendRef?.addEventListener("click", (e: MouseEvent) => {
 
 function setupHomePage(): void {
   document.querySelector<HTMLDivElement>(`#app`)!.innerHTML = /*html*/ `
-<div style="display: flex; gap: 1rem;">
+<div
+class="wrapper"
+
+>
   <aside>
+
+    <h1 class="logo">
+      canvas multiplayer
+    </h1>
     <div class="controls" style="display: flex; align-items: center; justify-content: space-between;">
       <input type="color" name="CromePicker" id="controlsColorPickerInput" />
-      <button id="controlsClearButton">Clear</button>
+      <button id="controlsClearButton" title="Clear">
+        <svg class="svg-icon" stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round"
+          stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          <line x1="10" y1="11" x2="10" y2="17"></line>
+          <line x1="14" y1="11" x2="14" y2="17"></line>
+        </svg>
+
+      </button>
     </div>
   </aside>
   <main>
     <section>
-      <h1 style="text-align: center; font-family: monospace; font-size: 1.25rem;">
-        canvas multiplayer
-      </h1>
-    </section>
-
-
-    <section>
-
       <div class="canvas-container">
-        <canvas></canvas>
+        <canvas id="canvasRef"></canvas>
       </div>
       <!-- <canvas width="750" height="750" style="border: black; background: whitesmoke; border-radius: 1rem" class="border border-black rounded-md" /> -->
     </section>
@@ -167,7 +175,7 @@ function setupHomePage(): void {
     <form id="formRef" action="" class="messages_form">
       <input id="inputRef" type="text" autofocus autocomplete="off" placeholder="Send a message&#8230;" />
       <!-- <label for="sendRef">Send</label> -->
-      <button id="sendRef" type="submit" class="messages_send">
+      <button id="sendRef" type="submit" title="Send" class="messages_send">
         <svg class="svg-icon h-4 w-4 mr-1" viewBox="0 0 24 24">
           <line x1="22" y1="2" x2="11" y2="13"></line>
           <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
