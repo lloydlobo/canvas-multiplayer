@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Canvas Multiplayer</title>
+  </head>
+  <body style="display: grid; place-content: center">
+    <main>
+      <section>
+        <h1 style="text-align: center; font-family: monospace">
+          canvas multiplayer
+        </h1>
+      </section>
+      <section>
+        <div
+          class="controls"
+          style="
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+          "
+        >
+          <input
+            type="color"
+            name="CromePicker"
+            id="controlsColorPickerInput"
+          />
+          <button id="controlsClearButton">Clear</button>
+        </div>
+        <canvas
+          width="750"
+          height="750"
+          style="border: black; background: whitesmoke; border-radius: 1rem"
+          class="border border-black rounded-md"
+        />
+      </section>
+    </main>
+    <script>
+      console.log("it works");
+
+      const controlsClearButton = document.getElementById(
+        "controlsClearButton"
+      );
+      const controlsColorPickerInput = document.getElementById(
+        "controlsColorPickerInput"
+      );
+
+      controlsClearButton.addEventListener("click", (event) => {
+        event.preventDefault();
+        console.info(event.target, "Clearing canvas");
+      });
+      controlsColorPickerInput.addEventListener("click", (event) => {
+        console.info(event.target, "Picking color");
+      });
+    </script>
+  </body>
+</html>
