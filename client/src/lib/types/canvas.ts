@@ -4,6 +4,7 @@ export type Point = {
 };
 
 export type CanvasEventAtom = {
+  lineColor: any;
   /**
    * The type of event.
    */

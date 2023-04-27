@@ -58,6 +58,11 @@ const handleGetPointInCanvas = (e: MouseEvent, canvas: HTMLCanvasElement) => {
   return { x: e.clientX - rect.left, y: e.clientY - rect.top };
 };
 
+function handleSetLineColor(event: any) {
+  const color = event?.target?.value;
+  canvasEventAtom.lineColor = color;
+}
+
 const handleClearCanvas = () => {
   canvasCtx.clearRect(0, 0, canvasRef.width, canvasRef.height);
   canvasEventAtom.previousPoint = null;
@@ -77,6 +82,7 @@ const canvasEventAtom: CanvasEventAtom = {
   previousPoint: null,
   currentPoint: { x: 0, y: 0 },
   mouseView: MouseView.Default,
+  lineColor: "#bada56",
 };
 
 canvasRef?.addEventListener("mousedown", (event: MouseEvent) => {
@@ -101,10 +107,10 @@ canvasRef?.addEventListener("mouseup", (event: MouseEvent) => {
 canvasRef?.addEventListener("mousemove", (event: MouseEvent) => {
   canvasEventAtom.currentPoint = handleGetPointInCanvas(event, canvasRef);
   const lineWidth = 4;
-  const lineColor = "yellow";
+  const lineColor = canvasEventAtom.lineColor;
 
   // If it is an arc or circle or intersecting.
-  let startPoint =
+  const startPoint =
     canvasEventAtom.previousPoint ?? canvasEventAtom.currentPoint;
 
   if (!canvasEventAtom.isMousedownToDraw) {
@@ -127,6 +133,7 @@ canvasRef?.addEventListener("mousemove", (event: MouseEvent) => {
   );
   canvasCtx.stroke();
   canvasCtx.fillStyle = lineColor;
+
   canvasCtx.beginPath();
   canvasCtx.arc(startPoint.x, startPoint.y, 2, 0, 2 * Math.PI);
   canvasCtx.fill();
@@ -229,8 +236,9 @@ controlsClearButton?.addEventListener("click", (event) => {
   console.info(event.target, "Clearing canvas");
   handleClearCanvas();
 });
-controlsColorPickerInput?.addEventListener("click", (event) => {
+controlsColorPickerInput?.addEventListener("input", (event) => {
   console.info(event.target, "Picking color");
+  handleSetLineColor(event);
 });
 
 formRef?.addEventListener("submit", (event) => {
@@ -266,7 +274,7 @@ function setupHomePage(): void {
       canvas multiplayer
     </h1>
     <div class="controls" style="display: flex; align-items: center; justify-content: space-between;">
-      <input type="color" name="CromePicker" id="controlsColorPickerInput" />
+      <input type="color" value="#bada56" name="CromePicker" id="controlsColorPickerInput" />
       <button id="controlsClearButton" title="Clear">
         <svg class="svg-icon" stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round"
           stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
