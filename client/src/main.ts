@@ -5,6 +5,7 @@ import {
   ClientToServerEvents,
   ServerToClientEvents,
 } from "./lib/types/socket.ts";
+import { CanvasEventAtom, MouseView, Point } from "./lib/types/canvas.ts";
 
 // //////////////////////////////////////////////
 // REGION_START: render DOM
@@ -20,7 +21,27 @@ const controlsClearButton = document.getElementById("controlsClearButton");
 const controlsColorPickerInput = document.getElementById(
   "controlsColorPickerInput"
 );
+
 const canvasRef = document.getElementsByTagName("canvas")[0];
+if (!canvasRef) {
+  throw Error("Canvas not found.");
+}
+const canvasRect: DOMRect = canvasRef.getBoundingClientRect();
+const container = canvasRef.parentNode as NonNullable<HTMLDivElement> | null;
+if (!container) {
+  throw Error("Container not found.");
+}
+const canvasCtx = canvasRef.getContext("2d");
+if (canvasCtx === null || !canvasCtx) {
+  throw Error("Canvas context is null.");
+}
+window.addEventListener("load", () => {
+  container.style.width = `${(window.outerWidth / 1.618).toString()}px`; // works
+  canvasRef.width = container.clientWidth;
+  canvasRef.height = container.clientHeight;
+});
+
+// container.style.width = `${(window.outerWidth / 1.618).toString()}px`; // works
 
 // ///////////////////////////////////////////////
 // REGION_END: render DOM
@@ -30,50 +51,106 @@ const canvasRef = document.getElementsByTagName("canvas")[0];
 // REGION_START: canvas events
 // ///////////////////////////////////////////////
 
-const container = canvasRef.parentNode as HTMLDivElement;
-function resizeCanvas() {
-  canvasRef.width = container?.clientWidth;
-  canvasRef.height = container?.clientHeight;
-}
-window.addEventListener("resize", resizeCanvas);
-resizeCanvas();
+// canvas coordinate system.
+const getPointInCanvas = (e: MouseEvent, canvas: HTMLCanvasElement) => {
+  // const rect: DOMRect = canvas.getBoundingClientRect();
+  const rect: DOMRect = container.getBoundingClientRect();
+  return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+};
 
-// canvas.width = 500;
-const ctx = canvasRef.getContext("2d");
-if (ctx === null) {
-  throw Error("Canvas context is null.");
-}
-let isDrawingState = false;
-let startXState: number;
-let startYState: number;
+const canvasEventAtom: CanvasEventAtom = {
+  ctx: canvasCtx,
+  type: "",
+  offsetX: 0,
+  offsetY: 0,
+  width: 0,
+  height: 0,
+  isMousedownToDraw: false,
+  previousPoint: null,
+  currentPoint: { x: 0, y: 0 },
+  mouseView: MouseView.Default,
+};
 
 canvasRef?.addEventListener("mousedown", (event: MouseEvent) => {
-  isDrawingState = true;
-  startXState = event.offsetX;
-  startYState = event.offsetY;
-  // console.log("mousedown", event);
+  canvasEventAtom.type = "mousedown";
+  canvasEventAtom.isMousedownToDraw = true;
+  canvasEventAtom.mouseView = MouseView.Crosshair;
+  canvasRef.style.cursor = canvasEventAtom.mouseView;
+  canvasEventAtom.offsetX = event.offsetX;
+  canvasEventAtom.offsetY = event.offsetY;
+  canvasEventAtom.currentPoint = getPointInCanvas(event, canvasRef);
+  canvasEventAtom.previousPoint = structuredClone(canvasEventAtom.currentPoint);
 });
 
 canvasRef?.addEventListener("mouseup", (event: MouseEvent) => {
-  isDrawingState = false;
+  canvasEventAtom.type = "mouseup";
+  canvasEventAtom.isMousedownToDraw = false;
+  canvasEventAtom.previousPoint = null;
+  canvasEventAtom.mouseView = MouseView.Default;
+  canvasRef.style.cursor = canvasEventAtom.mouseView;
 });
 
 canvasRef?.addEventListener("mousemove", (event: MouseEvent) => {
-  if (isDrawingState) {
-    if (startXState === undefined || startYState === undefined) {
-      console.log("startXState or startYState is undefined");
-      return;
-    }
-    ctx.beginPath();
-    ctx.moveTo(startXState, startYState);
-    ctx.lineTo(event.offsetX, event.offsetY);
-    ctx.stroke();
+  canvasEventAtom.currentPoint = getPointInCanvas(event, canvasRef);
+  const lineWidth = 4;
+  const lineColor = "yellow";
 
-    startXState = event.offsetX;
-    startYState = event.offsetY;
-    // console.log("mousemove", event);
+  // If it is an arc or circle or intersecting.
+  let startPoint =
+    canvasEventAtom.previousPoint ?? canvasEventAtom.currentPoint;
+
+  if (!canvasEventAtom.isMousedownToDraw) {
+    return;
   }
+  canvasCtx.beginPath();
+  canvasCtx.lineWidth = lineWidth;
+  canvasCtx.strokeStyle = lineColor;
+  if (!canvasEventAtom.previousPoint) {
+    return;
+  }
+  canvasCtx.moveTo(
+    startPoint.x, // canvasEventAtom.previousPoint.x,
+    startPoint.y // canvasEventAtom.previousPoint.y
+  );
+  // canvasEventAtom.currentPoint = getPointInCanvas(event, canvasRef);
+  canvasCtx.lineTo(
+    canvasEventAtom.currentPoint.x,
+    canvasEventAtom.currentPoint.y
+  );
+  canvasCtx.stroke();
+  canvasCtx.fillStyle = lineColor;
+  canvasCtx.beginPath();
+  canvasCtx.arc(startPoint.x, startPoint.y, 2, 0, 2 * Math.PI);
+  canvasCtx.fill();
+  canvasEventAtom.previousPoint = structuredClone(canvasEventAtom.currentPoint);
 });
+
+function resizeCanvas() {
+  if (!canvasRef || !canvasCtx || !container || !canvasRect) {
+    return;
+  }
+  const imagedata = canvasCtx.getImageData(
+    0,
+    0,
+    canvasRef.width,
+    canvasRef.height
+  );
+  // container.style.width = `${(window.outerWidth / 1.618).toString()}px`; // works
+
+  // Resize the canvas.
+
+  // container.style.width = `${(window.outerWidth / 1.618).toString()}px`; // works
+  canvasRef.width = container.clientWidth;
+  canvasRef.height = container.clientHeight;
+  canvasRef.getContext("2d")?.putImageData(imagedata, 0, 0);
+}
+//
+window.addEventListener("resize", (event: UIEvent) => {
+  // container.style.width = `${(window.outerWidth / 1.618).toString()}px`; // works
+  resizeCanvas();
+});
+
+resizeCanvas();
 
 // ///////////////////////////////////////////////
 // REGION_END: canvas events
@@ -108,7 +185,7 @@ socket.on("canvas_state_from_server", (state: string) => {
   const img = new Image();
   img.src = state;
   img.onload = () => {
-    ctx?.drawImage(img, 0, 0);
+    canvasCtx?.drawImage(img, 0, 0);
   };
 });
 
