@@ -20,6 +20,7 @@ app.get("/", async (req, res) => {
 
 io.on("connection", (socket) => {
   socket.on("client-ready", () => {
+    console.log(`client-ready: ${socket.id}`);
     socket.broadcast.emit("get-canvas-state");
   });
 
