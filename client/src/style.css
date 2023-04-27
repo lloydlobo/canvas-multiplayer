@@ -112,6 +112,7 @@ aside #messagesListRef {
   height: 88vh;
   border: 0px solid red;
   border-radius: 0.5rem;
+  max-width: 25ch;
 }
 
 aside .controls {
@@ -130,6 +131,7 @@ aside .controls > * {
 }
 
 aside #messagesListRef > #formRef {
+  overflow-y: scroll;
   margin-block-start: auto;
   background-color: wheat;
 }
@@ -183,6 +185,7 @@ aside #messagesListRef > #formRef {
 }
 
 #messagesListRef > li {
+  text-align: start;
   padding: 0.5rem 1rem;
   font-size: small;
 }

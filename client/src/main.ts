@@ -55,7 +55,7 @@ if (ctx === null) {
 
 const formRef = document.getElementById("formRef");
 const messagesListRef = document.getElementById("messagesListRef");
-const inputRef = document.getElementById("inputRef");
+const inputRef = document.getElementById("inputRef") as HTMLInputElement;
 const sendRef = document.getElementById("sendRef");
 
 const controlsClearButton = document.getElementById("controlsClearButton");
@@ -76,16 +76,47 @@ controlsColorPickerInput?.addEventListener("click", (event) => {
 
 // socket.emit("client-ready");
 // console.log(socket);
-// socket.on("message", (message) => {
-//   const welcomeMessage = document.createElement("li");
-//   welcomeMessage.textContent = message;
-//   welcomeMessage.style.opacity = "0.6";
-//   welcomeMessage.style.fontSize = "90.0%";
-//   welcomeMessage.style.textAlign = "center";
+//
+socket.on("message", (message) => {
+  const welcomeMessage = document.createElement("li");
+  welcomeMessage.textContent = message;
+  welcomeMessage.style.opacity = "0.6";
+  welcomeMessage.style.fontSize = "90.0%";
+  welcomeMessage.style.textAlign = "center";
 
-//   messages.appendChild(welcomeMessage);
+  messagesListRef?.appendChild(welcomeMessage);
+});
+
+// formRef?.addEventListener("submit", (e: Event) => {
+//   e.preventDefault();
 // });
+// sendRef?.addEventListener("click", (e: MouseEvent) => {
+//   e.preventDefault();
+//   console.info(`**sendRef**`);
+// });
+formRef?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  if (inputRef?.value) {
+    const now = new Date();
+    const timestamp = `${now.getHours().toString().padStart(2, "0")}:${now
+      .getMinutes()
+      .toString()
+      .padStart(2, "0")}`;
+    const msg = `${timestamp}: ${inputRef.value}`;
 
+    socket.emit("chat_message", msg);
+    inputRef.value = ""; // Clear user input.
+  }
+});
+
+socket.on("chat_message", (msg) => {
+  const item = document.createElement("li");
+  item.textContent = msg;
+  messagesListRef?.appendChild(item);
+  // Scroll form mesageListRef
+  messagesListRef?.scrollTo(0, document.body.scrollHeight); // FIXME: Currently wrapper is of fixed width,height. add verticla block y axis scrolling.
+  window.scrollTo(0, document.body.scrollHeight); // FIXME: Currently wrapper is of fixed width,height. add verticla block y axis scrolling.
+});
 // form.addEventListener("submit", (event) => {
 //   event.preventDefault();
 //   if (input.value) {
@@ -110,14 +141,6 @@ controlsColorPickerInput?.addEventListener("click", (event) => {
 // });
 console.log(formRef, messagesListRef, inputRef, sendRef);
 
-formRef?.addEventListener("submit", (e: Event) => {
-  e.preventDefault();
-});
-sendRef?.addEventListener("click", (e: MouseEvent) => {
-  e.preventDefault();
-  console.info(`**sendRef**`);
-});
-
 // ////////////////////////////////////////////////////////////////////////////
 // REGION_END: event handlers
 // ////////////////////////////////////////////////////////////////////////////
@@ -128,12 +151,8 @@ sendRef?.addEventListener("click", (e: MouseEvent) => {
 
 function setupHomePage(): void {
   document.querySelector<HTMLDivElement>(`#app`)!.innerHTML = /*html*/ `
-<div
-class="wrapper"
-
->
+<div class="wrapper">
   <aside>
-
     <h1 class="logo">
       canvas multiplayer
     </h1>
@@ -151,27 +170,18 @@ class="wrapper"
       </button>
     </div>
   </aside>
+
   <main>
     <section>
       <div class="canvas-container">
         <canvas id="canvasRef"></canvas>
       </div>
-      <!-- <canvas width="750" height="750" style="border: black; background: whitesmoke; border-radius: 1rem" class="border border-black rounded-md" /> -->
     </section>
   </main>
 
   <aside>
-    <ul id="messagesListRef" class="messages debug!">
-      <li>hi</li>
-      <li>hi</li>
-      <li></li>
-      <li></li>
-      <li></li>
-      <li></li>
-      <li></li>
-      <li></li>
-      <li></li>
-    </ul>
+    <ul id="messagesListRef" class="messages debug!"></ul>
+
     <form id="formRef" action="" class="messages_form">
       <input id="inputRef" type="text" autofocus autocomplete="off" placeholder="Send a message&#8230;" />
       <!-- <label for="sendRef">Send</label> -->
