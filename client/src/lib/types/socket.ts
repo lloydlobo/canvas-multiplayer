@@ -4,12 +4,18 @@ interface ServerToClientEvents {
   withAck: (d: string, callback: (e: number) => void) => void;
   message: (data: string) => void;
   chat_message: (data: string) => void;
+  get_canvas_state: (data: string) => void;
+  canvas_state_from_server: (state: string) => void;
 }
 
 interface ClientToServerEvents {
   hello: () => void;
+  client_ready: () => void;
+  canvas_state: (data: string) => void;
+  chat_message: (data: string) => void;
 }
 
+// Maybe add chat_message here.
 interface InterServerEvents {
   ping: () => void;
 }

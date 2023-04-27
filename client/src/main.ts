@@ -6,20 +6,42 @@ import {
   ServerToClientEvents,
 } from "./lib/types/socket.ts";
 
-// ////////////////////////////////////////////////////////////////////////////
+// //////////////////////////////////////////////
 // REGION_START: render DOM
-// ////////////////////////////////////////////////////////////////////////////
+// //////////////////////////////////////////////
 
 setupHomePage();
-// setupCounter(document.querySelector<HTMLButtonElement>("#counter")!);
 
-// ////////////////////////////////////////////////////////////////////////////
+const canvas = document.getElementsByTagName("canvas")[0];
+const formRef = document.getElementById("formRef");
+const messagesListRef = document.getElementById("messagesListRef");
+const inputRef = document.getElementById("inputRef") as HTMLInputElement;
+const sendRef = document.getElementById("sendRef");
+const controlsClearButton = document.getElementById("controlsClearButton");
+const controlsColorPickerInput = document.getElementById(
+  "controlsColorPickerInput"
+);
+
+const container = canvas.parentNode as HTMLDivElement;
+function resizeCanvas() {
+  canvas.width = container?.clientWidth;
+  canvas.height = container?.clientHeight;
+}
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
+canvas.width = 500;
+const ctx = canvas.getContext("2d");
+if (ctx === null) {
+  throw Error("Canvas context is null.");
+}
+
+// ///////////////////////////////////////////////
 // REGION_END: render DOM
-// ////////////////////////////////////////////////////////////////////////////
+// ///////////////////////////////////////////////
 
-// ////////////////////////////////////////////////////////////////////////////
+// ///////////////////////////////////////////////
 // REGION_START: Websockets
-// ////////////////////////////////////////////////////////////////////////////
+// ///////////////////////////////////////////////
 
 /**
  * @see https://socket.io/docs/v4/typescript/
@@ -28,55 +50,28 @@ setupHomePage();
 const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
   "http://localhost:8080"
 );
-console.log(socket);
+console.log("client_ready", socket);
+socket.emit("client_ready");
 
-// ////////////////////////////////////////////////////////////////////////////
-// REGION_END: Websockets
-// ////////////////////////////////////////////////////////////////////////////
-
-// ////////////////////////////////////////////////////////////////////////////
-// REGION_START: event handlers
-// ////////////////////////////////////////////////////////////////////////////
-
-const canvas = document.getElementsByTagName("canvas")[0];
-const container = canvas.parentNode as HTMLDivElement;
-function resizeCanvas() {
-  canvas.width = container?.clientWidth;
-  canvas.height = container?.clientHeight;
-}
-window.addEventListener("resize", resizeCanvas);
-resizeCanvas();
-
-canvas.width = 500;
-const ctx = canvas.getContext("2d");
-if (ctx === null) {
-  throw Error("Canvas context is null.");
-}
-
-const formRef = document.getElementById("formRef");
-const messagesListRef = document.getElementById("messagesListRef");
-const inputRef = document.getElementById("inputRef") as HTMLInputElement;
-const sendRef = document.getElementById("sendRef");
-
-const controlsClearButton = document.getElementById("controlsClearButton");
-const controlsColorPickerInput = document.getElementById(
-  "controlsColorPickerInput"
-);
-
-controlsClearButton?.addEventListener("click", (event) => {
-  event.preventDefault();
-  console.info(event.target, "Clearing canvas");
-});
-controlsColorPickerInput?.addEventListener("click", (event) => {
-  console.info(event.target, "Picking color");
+socket.on("get_canvas_state", () => {
+  console.log("entering get_canvas_state");
+  // Return early if the content of the current canvas as an image isn't supported.
+  if (!canvas?.toDataURL()) {
+    return; // This is useful if you want to save the image to disk. If you want to display the image on the page, you can use `<img src="data:image/png;base64,..." />`.
+  }
+  console.log("get_canvas_state: sending canvas_state");
+  socket.emit("canvas_state", canvas.toDataURL());
 });
 
-// Client side code.
-// var socket = io("http://localhost:8080");
+socket.on("canvas_state_from_server", (state: string) => {
+  console.log("canvas_state_from_server: received the state", state.length);
+  const img = new Image();
+  img.src = state;
+  img.onload = () => {
+    ctx?.drawImage(img, 0, 0);
+  };
+});
 
-// socket.emit("client-ready");
-// console.log(socket);
-//
 socket.on("message", (message) => {
   const welcomeMessage = document.createElement("li");
   welcomeMessage.textContent = message;
@@ -87,13 +82,31 @@ socket.on("message", (message) => {
   messagesListRef?.appendChild(welcomeMessage);
 });
 
-// formRef?.addEventListener("submit", (e: Event) => {
-//   e.preventDefault();
-// });
-// sendRef?.addEventListener("click", (e: MouseEvent) => {
-//   e.preventDefault();
-//   console.info(`**sendRef**`);
-// });
+socket.on("chat_message", (msg) => {
+  const item = document.createElement("li");
+  item.textContent = msg;
+  messagesListRef?.appendChild(item);
+  // Scroll form mesageListRef
+  messagesListRef?.scrollTo(0, document.body.scrollHeight); // FIXME: Currently wrapper is of fixed width,height. add verticla block y axis scrolling.
+  window.scrollTo(0, document.body.scrollHeight); // FIXME: Currently wrapper is of fixed width,height. add verticla block y axis scrolling.
+});
+
+// ///////////////////////////////////////////////
+// REGION_END: Websockets
+// ///////////////////////////////////////////////
+
+// ///////////////////////////////////////////////
+// REGION_START: event handlers
+// ///////////////////////////////////////////////
+
+controlsClearButton?.addEventListener("click", (event) => {
+  event.preventDefault();
+  console.info(event.target, "Clearing canvas");
+});
+controlsColorPickerInput?.addEventListener("click", (event) => {
+  console.info(event.target, "Picking color");
+});
+
 formRef?.addEventListener("submit", (event) => {
   event.preventDefault();
   if (inputRef?.value) {
@@ -109,45 +122,15 @@ formRef?.addEventListener("submit", (event) => {
   }
 });
 
-socket.on("chat_message", (msg) => {
-  const item = document.createElement("li");
-  item.textContent = msg;
-  messagesListRef?.appendChild(item);
-  // Scroll form mesageListRef
-  messagesListRef?.scrollTo(0, document.body.scrollHeight); // FIXME: Currently wrapper is of fixed width,height. add verticla block y axis scrolling.
-  window.scrollTo(0, document.body.scrollHeight); // FIXME: Currently wrapper is of fixed width,height. add verticla block y axis scrolling.
-});
-// form.addEventListener("submit", (event) => {
-//   event.preventDefault();
-//   if (input.value) {
-//     const now = new Date();
-//     const timestamp = `${now.getHours().toString().padStart(2, "0")}:${now
-//       .getMinutes()
-//       .toString()
-//       .padStart(2, "0")}`;
-
-//     const msg = `${timestamp}: ${input.value}`;
-
-//     socket.emit("chat message", msg);
-//     input.value = ""; // Clear user input.
-//   }
-// });
-
-// socket.on("chat message", (msg) => {
-//   const item = document.createElement("li");
-//   item.textContent = msg;
-//   messages.appendChild(item);
-//   window.scrollTo(0, document.body.scrollHeight);
-// });
 console.log(formRef, messagesListRef, inputRef, sendRef);
 
-// ////////////////////////////////////////////////////////////////////////////
+// ///////////////////////////////////////////////
 // REGION_END: event handlers
-// ////////////////////////////////////////////////////////////////////////////
+// ///////////////////////////////////////////////
 
-// ////////////////////////////////////////////////////////////////////////////
+// ///////////////////////////////////////////////
 // REGION_START: setupHomePage
-// ////////////////////////////////////////////////////////////////////////////
+// ///////////////////////////////////////////////
 
 function setupHomePage(): void {
   document.querySelector<HTMLDivElement>(`#app`)!.innerHTML = /*html*/ `
@@ -197,6 +180,6 @@ function setupHomePage(): void {
 `;
 }
 
-// ////////////////////////////////////////////////////////////////////////////
+// ///////////////////////////////////////////////
 // REGION_END: setupHomePage
-// ////////////////////////////////////////////////////////////////////////////
+// ///////////////////////////////////////////////
