@@ -21,7 +21,7 @@ type Point = {
 };
 
 type DrawLine = {
-  previousPoint: Point;
+  previousPoint: Point | null;
   currentPoint: Point;
   color: string;
 };

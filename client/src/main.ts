@@ -12,7 +12,6 @@ import {
 
 setupHomePage();
 
-const canvas = document.getElementsByTagName("canvas")[0];
 const formRef = document.getElementById("formRef");
 const messagesListRef = document.getElementById("messagesListRef");
 const inputRef = document.getElementById("inputRef") as HTMLInputElement;
@@ -21,22 +20,63 @@ const controlsClearButton = document.getElementById("controlsClearButton");
 const controlsColorPickerInput = document.getElementById(
   "controlsColorPickerInput"
 );
-
-const container = canvas.parentNode as HTMLDivElement;
-function resizeCanvas() {
-  canvas.width = container?.clientWidth;
-  canvas.height = container?.clientHeight;
-}
-window.addEventListener("resize", resizeCanvas);
-resizeCanvas();
-canvas.width = 500;
-const ctx = canvas.getContext("2d");
-if (ctx === null) {
-  throw Error("Canvas context is null.");
-}
+const canvasRef = document.getElementsByTagName("canvas")[0];
 
 // ///////////////////////////////////////////////
 // REGION_END: render DOM
+// ///////////////////////////////////////////////
+
+// ///////////////////////////////////////////////
+// REGION_START: canvas events
+// ///////////////////////////////////////////////
+
+const container = canvasRef.parentNode as HTMLDivElement;
+function resizeCanvas() {
+  canvasRef.width = container?.clientWidth;
+  canvasRef.height = container?.clientHeight;
+}
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
+
+// canvas.width = 500;
+const ctx = canvasRef.getContext("2d");
+if (ctx === null) {
+  throw Error("Canvas context is null.");
+}
+let isDrawingState = false;
+let startXState: number;
+let startYState: number;
+
+canvasRef?.addEventListener("mousedown", (event: MouseEvent) => {
+  isDrawingState = true;
+  startXState = event.offsetX;
+  startYState = event.offsetY;
+  // console.log("mousedown", event);
+});
+
+canvasRef?.addEventListener("mouseup", (event: MouseEvent) => {
+  isDrawingState = false;
+});
+
+canvasRef?.addEventListener("mousemove", (event: MouseEvent) => {
+  if (isDrawingState) {
+    if (startXState === undefined || startYState === undefined) {
+      console.log("startXState or startYState is undefined");
+      return;
+    }
+    ctx.beginPath();
+    ctx.moveTo(startXState, startYState);
+    ctx.lineTo(event.offsetX, event.offsetY);
+    ctx.stroke();
+
+    startXState = event.offsetX;
+    startYState = event.offsetY;
+    // console.log("mousemove", event);
+  }
+});
+
+// ///////////////////////////////////////////////
+// REGION_END: canvas events
 // ///////////////////////////////////////////////
 
 // ///////////////////////////////////////////////
@@ -56,11 +96,11 @@ socket.emit("client_ready");
 socket.on("get_canvas_state", () => {
   console.log("entering get_canvas_state");
   // Return early if the content of the current canvas as an image isn't supported.
-  if (!canvas?.toDataURL()) {
+  if (!canvasRef?.toDataURL()) {
     return; // This is useful if you want to save the image to disk. If you want to display the image on the page, you can use `<img src="data:image/png;base64,..." />`.
   }
   console.log("get_canvas_state: sending canvas_state");
-  socket.emit("canvas_state", canvas.toDataURL());
+  socket.emit("canvas_state", canvasRef.toDataURL());
 });
 
 socket.on("canvas_state_from_server", (state: string) => {
