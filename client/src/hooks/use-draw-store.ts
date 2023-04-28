@@ -21,7 +21,7 @@ export const useDrawStore = (onDraw: DrawEventHandler): UseDrawResult => {
     canvasState.prevPoint = null;
   };
 
-  const mouseMoveHandler = (e: MouseEvent) => {
+  const mouseMoveHandler = (e: any) => {
     if (!canvasState.isMouseDown) {
       return;
     }
@@ -41,11 +41,23 @@ export const useDrawStore = (onDraw: DrawEventHandler): UseDrawResult => {
 
   const addEventListeners = (canvas: HTMLCanvasElement) => {
     canvas.addEventListener("mousemove", mouseMoveHandler);
+    canvas.addEventListener("touchmove", (event: TouchEvent) => {
+      const location: Touch = event.touches[0];
+      if (canvas !== null) {
+        canvas.onmousedown!(location as unknown as MouseEvent);
+      }
+    });
     window.addEventListener("mouseup", mouseUpHandler);
   };
 
   const removeEventListeners = (canvas: HTMLCanvasElement) => {
     canvas.removeEventListener("mousemove", mouseMoveHandler);
+    canvas.removeEventListener("touchmove", (event: TouchEvent) => {
+      const location: Touch = event.touches[0];
+      if (canvas !== null) {
+        canvas.onmousedown!(location as unknown as MouseEvent);
+      }
+    });
     window.removeEventListener("mouseup", mouseUpHandler);
   };
 

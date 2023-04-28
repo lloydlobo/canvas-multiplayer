@@ -105,8 +105,6 @@ const handleDraw = ({ ctx, currentPoint, prevPoint, color }: DrawLineProps) => {
   ctx.beginPath();
   ctx.strokeStyle = lineColor; // event.hex.
   ctx.lineWidth = controlsLineWidthPicker.valueAsNumber;
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
 
   // First calculate the distance between prev and curr mouse positons. Then
   // divide the distance by desire increment size to get the number of points
@@ -114,22 +112,20 @@ const handleDraw = ({ ctx, currentPoint, prevPoint, color }: DrawLineProps) => {
   const distance = Math.sqrt(
     (currentPoint.x - prevPoint.x) ** 2 + (currentPoint.y - prevPoint.y) ** 2
   );
-  const incrementSize = 5;
+  const incrementSize = 20;
   const numPoints = Math.ceil(distance / incrementSize); // Adjust the increment size here to make the line smoother or rougher.
-
   for (let i = 0; i <= numPoints; i++) {
     const t = i / numPoints;
     const x = lerp(prevPoint.x, currentPoint.x, t);
     const y = lerp(prevPoint.y, currentPoint.y, t);
-
     if (i === 0) {
-      ctx.moveTo(x, y);
+      ctx.moveTo(x, y); // ctx.moveTo(prevPoint.x, prevPoint.y);
     } else {
-      ctx.lineTo(x, y);
+      ctx.lineTo(x, y); // ctx.lineTo(currentPoint.x, currentPoint.y);
     }
   }
-  // ctx.moveTo(prevPoint.x, prevPoint.y);
-  // ctx.lineTo(currentPoint.x, currentPoint.y);
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
   ctx.stroke();
 
   ctx.fillStyle = controlsColorPickerInput.value;
@@ -145,9 +141,9 @@ setCanvasState(canvasRef);
 canvasRef.addEventListener("mousedown", onMouseDown);
 
 window.addEventListener("load", () => {
-  container.style.width = `${(window.outerWidth / 1.618).toString()}px`; // works
-  canvasRef.width = container.clientWidth;
-  canvasRef.height = container.clientHeight;
+  // container.style.width = `${(window.outerWidth / 1.618).toString()}px`; // works
+  // canvasRef.width = container.clientWidth;
+  // canvasRef.height = container.clientHeight;
   canvasRef.style.border = "1px solid #333333";
 });
 
@@ -278,30 +274,33 @@ formRef?.addEventListener("submit", (event) => {
 function setupHomePage(): void {
   document.querySelector<HTMLDivElement>(`#app`)!.innerHTML = /*html*/ `
 <div class="wrapper">
-  <aside>
-    <h1 class="logo">
-      canvas multiplayer
-    </h1>
-    <div class="controls" style="display: flex; align-items: center; justify-content: space-between;">
-      <button id="controlsClearButton" title="Clear">
-        <svg class="svg-icon" stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round"
-          stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
-          <polyline points="3 6 5 6 21 6"></polyline>
-          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-          <line x1="10" y1="11" x2="10" y2="17"></line>
-          <line x1="14" y1="11" x2="14" y2="17"></line>
-        </svg>
-      </button>
-      <input type="color" value="#eeeeee" name="CromePicker" title="Color picker" id="controlsColorPickerInput" />
-      <input type="range" min="3" max="11" title="Line width" value="2" name="lineWidthPicker" id="controlsLineWidthPicker" />
-    </div>
-  </aside>
 
   <main>
     <section>
+      <header class="header" >
+        <h1 class="logo">
+          canvas multiplayer
+        </h1>
+        <div class="controls" >
+          <button id="controlsClearButton" title="Clear">
+            <svg class="svg-icon" stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round"
+              stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              <line x1="10" y1="11" x2="10" y2="17"></line>
+              <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
+          </button>
+          <input type="color" value="#eeeeee" name="CromePicker" title="Color picker" id="controlsColorPickerInput" />
+          <input type="number" min="3" max="9" title="Line width" value="2" name="lineWidthPicker" id="controlsLineWidthPicker" />
+        </div>
+      </header>
+    </section>
+    <section>
       <div class="canvas-container">
-        <canvas id="canvasRef"></canvas>
+        <canvas id="canvasRef" width="600" height="600">Your browser does not support canvas element.</canvas>
       </div>
+      <pre id="logRef" style="border: 1px solid #ccc"></pre>
     </section>
   </main>
 
@@ -309,7 +308,7 @@ function setupHomePage(): void {
     <ul id="messagesListRef" class="messages debug!"></ul>
 
     <form id="formRef" action="" class="messages_form">
-      <input id="inputRef" type="text" autofocus autocomplete="off" placeholder="Send a message&#8230;" />
+      <input id="inputRef" type="text"  autocomplete="off" placeholder="Send a message&#8230;" />
       <!-- <label for="sendRef">Send</label> -->
       <button id="sendRef" type="submit" title="Send" class="messages_send">
         <svg class="svg-icon h-4 w-4 mr-1" viewBox="0 0 24 24">

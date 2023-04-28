@@ -66,10 +66,10 @@ h1 {
 
 .logo {
   font-family: monospace;
-  height: 6em;
-  padding: 1em;
   will-change: filter;
   transition: filter 300ms;
+  /* height: 6em; */
+  /* padding: 1em; */
 }
 .logo:hover {
   filter: drop-shadow(0 0 2em #646cffaa);
@@ -86,8 +86,49 @@ h1 {
   color: #888;
 }
 
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: 100vw;
+}
+
 .controls {
-  flex-direction: column;
+  background: rgba(0, 0, 0, 0.15);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  align-items: center;
+  border-radius: 0.5rem;
+  gap: 0.5rem;
+  padding-inline: 0.5rem;
+  padding-block: 0.5rem;
+  width: min-content;
+}
+
+.controls > * {
+  justify-self: start;
+}
+.controls > *:hover {
+  background-color: rgba(0, 0, 0, 0.15);
+}
+
+#controlsClearButton,
+#controlsColorPickerInput,
+#controlsLineWidthPicker {
+  width: 2rem;
+  height: 2rem;
+  font-size: smaller;
+}
+
+#controlsClearButton {
+  border-radius: 4px;
+  text-align: center;
+}
+
+#controlsLineWidthPicker {
+  border: none;
+  padding-inline-start: 4px;
 }
 
 .svg-icon {
@@ -136,21 +177,41 @@ aside #messagesListRef > #formRef {
   background-color: wheat;
 }
 
-.canvas-container {
-  margin-top: 8rem;
-  position: relative;
-  width: 100%;
-  height: 0;
-  padding-bottom: 56.25%; /* set a 16:9 aspect ratio */
+main {
+  display: grid;
+  place-content: center;
+  margin-inline: auto;
+  gap: 1rem;
 }
 
-.canvas-container canvas {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+/* .canvas-container { */
+/* margin-top: 8rem; */
+/* position: relative; */
+/* width: 100%; */
+/* height: 0; */
+/* padding-bottom: 56.25%; */
+/* set a 16:9 aspect ratio */
+/* } */
+
+/* .canvas-container canvas { */
+/*   position: absolute; */
+/*   top: 0; */
+/*   left: 0; */
+/*   width: 100%; */
+/*   height: 100%; */
+/*   background: rgba(0, 0, 0, 0.15); */
+/* } */
+
+canvas#canvasRef {
+  box-shadow: 0 0 10px 2px rgba(0, 0, 0, 0.15);
   background: rgba(0, 0, 0, 0.15);
+}
+
+#logRef {
+  display: none;
+  height: 200px;
+  width: 600px;
+  overflow: scroll;
 }
 
 #formRef {
@@ -290,6 +351,10 @@ button:hover {
   }
   .canvas-container canvas {
     background-color: whitesmoke;
+  }
+
+  #canvasRef {
+    box-shadow: 0 0 10px 2px rgba(0, 0, 0, 0.15);
   }
 }
 button,
