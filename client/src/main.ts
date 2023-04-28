@@ -22,6 +22,9 @@ const controlsClearButton = document.getElementById("controlsClearButton");
 const controlsColorPickerInput = document.getElementById(
   "controlsColorPickerInput"
 ) as HTMLInputElement;
+const controlsLineWidthPicker = document.getElementById(
+  "controlsLineWidthPicker"
+) as HTMLInputElement;
 
 const canvasRef = document.getElementsByTagName("canvas")[0];
 if (!canvasRef) {
@@ -67,7 +70,7 @@ const handleDraw = ({ ctx, currentPoint, prevPoint }: Draw) => {
   }
 
   ctx.strokeStyle = controlsColorPickerInput.value;
-  ctx.lineWidth = 4;
+  ctx.lineWidth = controlsLineWidthPicker.valueAsNumber;
 
   ctx.beginPath();
   ctx.moveTo(prevPoint.x, prevPoint.y);
@@ -159,6 +162,10 @@ controlsColorPickerInput?.addEventListener("input", (event) => {
   console.info(event.target, "Picking color");
   // handleSetLineColor(event);
 });
+controlsLineWidthPicker?.addEventListener("input", (event) => {
+  console.info(event.target, "Picking color");
+  // handleSetLineColor(event);
+});
 
 formRef?.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -193,7 +200,6 @@ function setupHomePage(): void {
       canvas multiplayer
     </h1>
     <div class="controls" style="display: flex; align-items: center; justify-content: space-between;">
-      <input type="color" value="#bada56" name="CromePicker" id="controlsColorPickerInput" />
       <button id="controlsClearButton" title="Clear">
         <svg class="svg-icon" stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round"
           stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
@@ -202,8 +208,9 @@ function setupHomePage(): void {
           <line x1="10" y1="11" x2="10" y2="17"></line>
           <line x1="14" y1="11" x2="14" y2="17"></line>
         </svg>
-
       </button>
+      <input type="color" value="#bada56" name="CromePicker" id="controlsColorPickerInput" />
+      <input type="range" min="1" max="20" value="4" name="lineWidthPicker" id="controlsLineWidthPicker" />
     </div>
   </aside>
 
