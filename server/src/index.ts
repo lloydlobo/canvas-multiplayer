@@ -21,7 +21,7 @@ type Point = {
 };
 
 type DrawLine = {
-  previousPoint: Point | null;
+  prevPoint: Point | null;
   currentPoint: Point;
   color: string;
 };
@@ -29,7 +29,20 @@ type DrawLine = {
 app.use(express.json());
 
 app.get("/", async (req, res) => {
-  const welcomeMessage = `<h1>canvas multiplayer</h1>`;
+  const clients = io.sockets.eventNames();
+  const welcomeMessage = /*html*/ `
+<h1>canvas multiplayer</h1>
+<pre>${JSON.stringify({ eventNames: clients }, null, 2)}</pre>
+<div style="display:flex; flex-direction:column;">
+  <a href="/canvas">canvas</a>
+  <a href="/chat">chat</a>
+  <a href="/draw">draw</a>
+  <a href="/draw-line">draw-line</a>
+  <a href="/clear">clear</a>
+  <a href="/state">state</a>
+  <a href="/state-from-server">state-from-server</a>
+  <a href="/state-from-client">state-from-client</a>
+  </div>`;
   res.send(welcomeMessage);
 });
 
@@ -52,9 +65,16 @@ io.on("connection", (socket) => {
     console.info(`received_canvas_state for ${socket.id}: ${state.length}`);
     socket.broadcast.emit("canvas_state_from_server", state);
   });
-  socket.on("draw_line", ({ previousPoint, currentPoint, color }: DrawLine) => {
-    socket.broadcast.emit("draw_line", { previousPoint, currentPoint, color });
-  });
+  socket.on(
+    "draw_line",
+    ({ prevPoint: prevPoint, currentPoint, color }: DrawLine) => {
+      socket.broadcast.emit("draw_line", {
+        prevPoint,
+        currentPoint,
+        color,
+      });
+    }
+  );
   socket.on("clear", () => {
     console.info(`clear: ${socket.id}`);
     io.emit("clear");

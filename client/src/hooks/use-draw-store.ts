@@ -1,70 +1,12 @@
-type Point = {
-  /** x coordinate in canvas. */
-  x: number;
-  /** y coordinate in canvas. */
-  y: number;
-};
+import {
+  AppCanvasState,
+  DrawEventHandler,
+  Point,
+  UseDrawResult,
+} from "../lib/types/canvas";
 
-export type Draw = {
-  ctx: CanvasRenderingContext2D;
-  currentPoint: Point;
-  prevPoint: Point | null;
-};
-
-export type DrawEventHandler = (draw: Draw) => void;
-
-export type UseDrawResult = {
-  // canvasRef: HTMLCanvasElement | null;
-  setCanvasState: (canvas: HTMLCanvasElement | null) => void;
-  onMouseDown: () => void;
-  onClear: () => void;
-};
-
-/** Initial state. */
-export type CanvasState = {
-  isMouseDown: boolean;
-  prevPoint: Point | null;
-  canvasRef: HTMLCanvasElement | null;
-};
-
-function handleOnClear(canvasDrawState: CanvasState) {
-  return () => {
-    if (!canvasDrawState.canvasRef) {
-      return;
-    }
-    const ctx = canvasDrawState.canvasRef.getContext("2d");
-    if (!ctx) {
-      return;
-    }
-    ctx.clearRect(
-      0,
-      0,
-      canvasDrawState.canvasRef.width,
-      canvasDrawState.canvasRef.height
-    );
-  };
-}
-
-function handleComputePointInCanvas(canvasState: CanvasState) {
-  return (e: MouseEvent): Point | undefined => {
-    if (!canvasState.canvasRef) {
-      return;
-    }
-
-    const rect: DOMRect = canvasState.canvasRef.getBoundingClientRect();
-    const currPoint: Point = {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    };
-
-    return currPoint;
-  };
-}
-
-export const useDrawStore = (
-  onDrawTrigger: DrawEventHandler
-): UseDrawResult => {
-  const canvasState: CanvasState = {
+export const useDrawStore = (onDraw: DrawEventHandler): UseDrawResult => {
+  const canvasState: AppCanvasState = {
     isMouseDown: false,
     prevPoint: null,
     canvasRef: null,
@@ -74,27 +16,28 @@ export const useDrawStore = (
 
   /* Drawing logic. */
 
-  const mouseMoveHandler = (e: MouseEvent) => {
-    if (!canvasState.isMouseDown) {
-      return;
-    }
-    const currentPoint = computePointInCanvas(e);
-
-    const ctx = canvasState.canvasRef?.getContext("2d");
-    if (!ctx || !currentPoint) {
-      return;
-    }
-
-    onDrawTrigger({ ctx, currentPoint, prevPoint: canvasState.prevPoint });
-    canvasState.prevPoint = currentPoint;
-  };
-
   const mouseUpHandler = (_e: MouseEvent) => {
     canvasState.isMouseDown = false;
     canvasState.prevPoint = null;
   };
 
-  /* Add event listeners. */
+  const mouseMoveHandler = (e: MouseEvent) => {
+    if (!canvasState.isMouseDown) {
+      return;
+    }
+
+    const currentPoint = computePointInCanvas(e);
+    const ctx = canvasState.canvasRef?.getContext("2d");
+
+    if (!ctx || !currentPoint) {
+      return;
+    }
+
+    onDraw({ ctx, currentPoint, prevPoint: canvasState.prevPoint });
+    canvasState.prevPoint = currentPoint;
+  };
+
+  /* Add/Remove event listeners. */
 
   const addEventListeners = (canvas: HTMLCanvasElement) => {
     canvas.addEventListener("mousemove", mouseMoveHandler);
@@ -108,7 +51,7 @@ export const useDrawStore = (
 
   /* Return functional state setters and callback triggers. */
 
-  const setCanvasState = (element: CanvasState["canvasRef"]) => {
+  const setCanvasState = (element: AppCanvasState["canvasRef"]) => {
     if (canvasState.canvasRef) {
       removeEventListeners(canvasState.canvasRef);
     }
@@ -131,76 +74,45 @@ export const useDrawStore = (
   };
 };
 
-export const useDraw = (onDraw: DrawEventHandler): UseDrawResult => {
-  let mouseDown = false;
-  let prevPoint: Point | null = null;
-  let canvasRef: HTMLCanvasElement | null = null;
-
-  const onMouseDown = () => {
-    mouseDown = true;
+function handleOnClear(canvasDrawState: AppCanvasState) {
+  return () => {
+    if (!canvasDrawState.canvasRef) {
+      return;
+    }
+    const ctx = canvasDrawState.canvasRef.getContext("2d");
+    if (!ctx) {
+      return;
+    }
+    ctx.clearRect(
+      0,
+      0,
+      canvasDrawState.canvasRef.width,
+      canvasDrawState.canvasRef.height
+    );
   };
+}
 
-  const clear = () => {
-    if (!canvasRef) return;
-
-    const ctx = canvasRef.getContext("2d");
-    if (!ctx) return;
-
-    ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
-  };
-
-  const handler = (e: MouseEvent) => {
-    if (!mouseDown) return;
-    const currentPoint = computePointInCanvas(e);
-
-    const ctx = canvasRef?.getContext("2d");
-    if (!ctx || !currentPoint) return;
-
-    onDraw({ ctx, currentPoint, prevPoint });
-    prevPoint = currentPoint;
-  };
-
-  const computePointInCanvas = (e: MouseEvent) => {
-    if (!canvasRef) return;
-
-    const rect = canvasRef.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    return { x, y };
-  };
-
-  const mouseUpHandler = () => {
-    mouseDown = false;
-    prevPoint = null;
-  };
-
-  const addEventListeners = (canvas: HTMLCanvasElement) => {
-    canvas.addEventListener("mousemove", handler);
-    window.addEventListener("mouseup", mouseUpHandler);
-  };
-
-  const removeEventListeners = (canvas: HTMLCanvasElement) => {
-    canvas.removeEventListener("mousemove", handler);
-    window.removeEventListener("mouseup", mouseUpHandler);
-  };
-
-  const canvasRefSetter = (element: HTMLCanvasElement | null) => {
-    if (canvasRef) {
-      removeEventListeners(canvasRef);
+function handleComputePointInCanvas(canvasState: AppCanvasState) {
+  return (e: MouseEvent): Point | undefined => {
+    if (!canvasState.canvasRef) {
+      return;
     }
 
-    canvasRef = element;
+    const rect: DOMRect = canvasState.canvasRef.getBoundingClientRect();
+    const currPoint: Point = {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    };
 
-    if (canvasRef) {
-      addEventListeners(canvasRef);
-    }
+    return currPoint;
   };
+}
 
-  return { setCanvasState: canvasRefSetter, onMouseDown, onClear: clear };
-};
+/*
 
-// ARCHIVE
+  ARCHIVE
+
+*/
 
 // ///////////////////////////////////////////////
 // REGION_START: canvas events

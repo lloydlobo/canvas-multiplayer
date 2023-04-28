@@ -1,3 +1,5 @@
+import { DrawLineProps, DrawLineSocketProps } from "./canvas";
+
 interface ServerToClientEvents {
   noArg: () => void;
   basicEmit: (a: number, b: string, c: Buffer) => void;
@@ -6,6 +8,8 @@ interface ServerToClientEvents {
   chat_message: (data: string) => void;
   get_canvas_state: (data: string) => void;
   canvas_state_from_server: (state: string) => void;
+  draw_line: (data: DrawLineSocketProps) => void;
+  clear: () => void;
 }
 
 interface ClientToServerEvents {
@@ -13,6 +17,8 @@ interface ClientToServerEvents {
   client_ready: () => void;
   canvas_state: (data: string) => void;
   chat_message: (data: string) => void;
+  draw_line: (data: DrawLineSocketProps) => void;
+  clear: () => void;
 }
 
 // Maybe add chat_message here.
