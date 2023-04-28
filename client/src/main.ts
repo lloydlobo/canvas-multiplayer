@@ -105,6 +105,8 @@ const handleDraw = ({ ctx, currentPoint, prevPoint, color }: DrawLineProps) => {
   ctx.beginPath();
   ctx.strokeStyle = lineColor; // event.hex.
   ctx.lineWidth = controlsLineWidthPicker.valueAsNumber;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
 
   // First calculate the distance between prev and curr mouse positons. Then
   // divide the distance by desire increment size to get the number of points
@@ -112,7 +114,7 @@ const handleDraw = ({ ctx, currentPoint, prevPoint, color }: DrawLineProps) => {
   const distance = Math.sqrt(
     (currentPoint.x - prevPoint.x) ** 2 + (currentPoint.y - prevPoint.y) ** 2
   );
-  const incrementSize = 1;
+  const incrementSize = 5;
   const numPoints = Math.ceil(distance / incrementSize); // Adjust the increment size here to make the line smoother or rougher.
 
   for (let i = 0; i <= numPoints; i++) {
