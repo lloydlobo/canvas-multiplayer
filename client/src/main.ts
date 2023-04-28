@@ -6,6 +6,7 @@ import {
   ServerToClientEvents,
 } from "./lib/types/socket.ts";
 import { CanvasEventAtom, MouseView, Point } from "./lib/types/canvas.ts";
+import { Draw, useDraw } from "./hooks/use-draw.ts";
 
 // //////////////////////////////////////////////
 // REGION_START: render DOM
@@ -20,7 +21,7 @@ const sendRef = document.getElementById("sendRef");
 const controlsClearButton = document.getElementById("controlsClearButton");
 const controlsColorPickerInput = document.getElementById(
   "controlsColorPickerInput"
-);
+) as HTMLInputElement;
 
 const canvasRef = document.getElementsByTagName("canvas")[0];
 if (!canvasRef) {
@@ -36,10 +37,19 @@ if (canvasCtx === null || !canvasCtx) {
   throw Error("Canvas context is null.");
 }
 window.addEventListener("load", () => {
-  container.style.width = `${(window.outerWidth / 1.618).toString()}px`; // works
+  // container.style.width = `${(window.outerWidth / 1.618).toString()}px`; // works
   canvasRef.width = container.clientWidth;
   canvasRef.height = container.clientHeight;
+  container.style.width = "50vw";
+  canvasRef.width = 500;
+  canvasRef.height = 500;
+  canvasRef.style.border = "1px solid #333333";
 });
+/* window.addEventListener("resize", () => { */
+/*   canvasRef.width = container.clientWidth; */
+/*   canvasRef.height = container.clientHeight; */
+/*   container.style.width = "50vw"; */
+/* }); */
 
 // container.style.width = `${(window.outerWidth / 1.618).toString()}px`; // works
 
@@ -48,127 +58,35 @@ window.addEventListener("load", () => {
 // ///////////////////////////////////////////////
 
 // ///////////////////////////////////////////////
-// REGION_START: canvas events
+// REGION_START: hooks
 // ///////////////////////////////////////////////
 
-// canvas coordinate system.
-const handleGetPointInCanvas = (e: MouseEvent, canvas: HTMLCanvasElement) => {
-  const rect: DOMRect = canvas.getBoundingClientRect();
-  // const rect: DOMRect = container.getBoundingClientRect();
-  return { x: e.clientX - rect.left, y: e.clientY - rect.top };
-};
-
-function handleSetLineColor(event: any) {
-  const color = event?.target?.value;
-  canvasEventAtom.lineColor = color;
-}
-
-const handleClearCanvas = () => {
-  canvasCtx.clearRect(0, 0, canvasRef.width, canvasRef.height);
-  canvasEventAtom.previousPoint = null;
-  canvasEventAtom.currentPoint = { x: 0, y: 0 };
-  canvasEventAtom.mouseView = MouseView.Default;
-  canvasRef.style.cursor = canvasEventAtom.mouseView;
-};
-
-const canvasEventAtom: CanvasEventAtom = {
-  ctx: canvasCtx,
-  type: "",
-  offsetX: 0,
-  offsetY: 0,
-  width: 0,
-  height: 0,
-  isMousedownToDraw: false,
-  previousPoint: null,
-  currentPoint: { x: 0, y: 0 },
-  mouseView: MouseView.Default,
-  lineColor: "#bada56",
-};
-
-canvasRef?.addEventListener("mousedown", (event: MouseEvent) => {
-  canvasEventAtom.type = "mousedown";
-  canvasEventAtom.isMousedownToDraw = true;
-  canvasEventAtom.mouseView = MouseView.Crosshair;
-  canvasRef.style.cursor = canvasEventAtom.mouseView;
-  canvasEventAtom.offsetX = event.offsetX;
-  canvasEventAtom.offsetY = event.offsetY;
-  canvasEventAtom.currentPoint = handleGetPointInCanvas(event, canvasRef);
-  canvasEventAtom.previousPoint = structuredClone(canvasEventAtom.currentPoint);
-});
-
-canvasRef?.addEventListener("mouseup", (event: MouseEvent) => {
-  canvasEventAtom.type = "mouseup";
-  canvasEventAtom.isMousedownToDraw = false;
-  canvasEventAtom.previousPoint = null;
-  canvasEventAtom.mouseView = MouseView.Default;
-  canvasRef.style.cursor = canvasEventAtom.mouseView;
-});
-
-canvasRef?.addEventListener("mousemove", (event: MouseEvent) => {
-  canvasEventAtom.currentPoint = handleGetPointInCanvas(event, canvasRef);
-  const lineWidth = 4;
-  const lineColor = canvasEventAtom.lineColor;
-
-  // If it is an arc or circle or intersecting.
-  const startPoint =
-    canvasEventAtom.previousPoint ?? canvasEventAtom.currentPoint;
-
-  if (!canvasEventAtom.isMousedownToDraw) {
+const handleDraw = ({ ctx, currentPoint, prevPoint }: Draw) => {
+  if (!prevPoint) {
     return;
   }
-  canvasCtx.beginPath();
-  canvasCtx.lineWidth = lineWidth;
-  canvasCtx.strokeStyle = lineColor;
-  if (!canvasEventAtom.previousPoint) {
-    return;
-  }
-  canvasCtx.moveTo(
-    startPoint.x, // canvasEventAtom.previousPoint.x,
-    startPoint.y // canvasEventAtom.previousPoint.y
-  );
-  // canvasEventAtom.currentPoint = getPointInCanvas(event, canvasRef);
-  canvasCtx.lineTo(
-    canvasEventAtom.currentPoint.x,
-    canvasEventAtom.currentPoint.y
-  );
-  canvasCtx.stroke();
-  canvasCtx.fillStyle = lineColor;
 
-  canvasCtx.beginPath();
-  canvasCtx.arc(startPoint.x, startPoint.y, 2, 0, 2 * Math.PI);
-  canvasCtx.fill();
-  canvasEventAtom.previousPoint = structuredClone(canvasEventAtom.currentPoint);
-});
+  ctx.strokeStyle = controlsColorPickerInput.value;
+  ctx.lineWidth = 4;
 
-function resizeCanvas() {
-  if (!canvasRef || !canvasCtx || !container || !canvasRect) {
-    return;
-  }
-  const imagedata = canvasCtx.getImageData(
-    0,
-    0,
-    canvasRef.width,
-    canvasRef.height
-  );
-  // container.style.width = `${(window.outerWidth / 1.618).toString()}px`; // works
+  ctx.beginPath();
+  ctx.moveTo(prevPoint.x, prevPoint.y);
+  ctx.lineTo(currentPoint.x, currentPoint.y);
+  ctx.stroke();
+};
 
-  // Resize the canvas.
+const { canvasRefSetter, onMouseDown, onClear } = useDraw(handleDraw);
+canvasRefSetter(canvasRef);
+canvasRef.addEventListener("mousedown", onMouseDown);
 
-  // container.style.width = `${(window.outerWidth / 1.618).toString()}px`; // works
+window.addEventListener("load", () => {
+  container.style.width = `${(window.outerWidth / 1.618).toString()}px`; // works
   canvasRef.width = container.clientWidth;
   canvasRef.height = container.clientHeight;
-  canvasRef.getContext("2d")?.putImageData(imagedata, 0, 0);
-}
-//
-window.addEventListener("resize", (event: UIEvent) => {
-  // container.style.width = `${(window.outerWidth / 1.618).toString()}px`; // works
-  resizeCanvas();
 });
 
-resizeCanvas();
-
 // ///////////////////////////////////////////////
-// REGION_END: canvas events
+// REGION_END: hooks
 // ///////////////////////////////////////////////
 
 // ///////////////////////////////////////////////
@@ -234,11 +152,12 @@ socket.on("chat_message", (msg) => {
 controlsClearButton?.addEventListener("click", (event) => {
   event.preventDefault();
   console.info(event.target, "Clearing canvas");
-  handleClearCanvas();
+  // handleClearCanvas();
+  onClear();
 });
 controlsColorPickerInput?.addEventListener("input", (event) => {
   console.info(event.target, "Picking color");
-  handleSetLineColor(event);
+  // handleSetLineColor(event);
 });
 
 formRef?.addEventListener("submit", (event) => {
