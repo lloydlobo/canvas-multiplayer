@@ -6,7 +6,8 @@ import {
   ServerToClientEvents,
 } from "./lib/types/socket.ts";
 import { CanvasEventAtom, MouseView, Point } from "./lib/types/canvas.ts";
-import { Draw, useDraw } from "./hooks/use-draw.ts";
+import { Draw, useDraw, useDrawStore } from "./hooks/use-draw.ts";
+import * as dotenv from "dotenv";
 
 // //////////////////////////////////////////////
 // REGION_START: render DOM
@@ -18,43 +19,26 @@ const formRef = document.getElementById("formRef");
 const messagesListRef = document.getElementById("messagesListRef");
 const inputRef = document.getElementById("inputRef") as HTMLInputElement;
 const sendRef = document.getElementById("sendRef");
+
 const controlsClearButton = document.getElementById("controlsClearButton");
-const controlsColorPickerInput = document.getElementById(
-  "controlsColorPickerInput"
-) as HTMLInputElement;
-const controlsLineWidthPicker = document.getElementById(
-  "controlsLineWidthPicker"
-) as HTMLInputElement;
+const controlsColorPickerInput = document.getElementById( "controlsColorPickerInput") as HTMLInputElement; // prettier-ignore
+const controlsLineWidthPicker = document.getElementById( "controlsLineWidthPicker") as HTMLInputElement; // prettier-ignore
 
 const canvasRef = document.getElementsByTagName("canvas")[0];
-if (!canvasRef) {
-  throw Error("Canvas not found.");
-}
+if (!canvasRef) { throw Error("Canvas not found."); } // prettier-ignore
+
 const canvasRect: DOMRect = canvasRef.getBoundingClientRect();
+
 const container = canvasRef.parentNode as NonNullable<HTMLDivElement> | null;
-if (!container) {
-  throw Error("Container not found.");
-}
+if (!container) { throw Error("Container not found."); } // prettier-ignore
 const canvasCtx = canvasRef.getContext("2d");
-if (canvasCtx === null || !canvasCtx) {
-  throw Error("Canvas context is null.");
-}
-window.addEventListener("load", () => {
-  // container.style.width = `${(window.outerWidth / 1.618).toString()}px`; // works
-  canvasRef.width = container.clientWidth;
-  canvasRef.height = container.clientHeight;
-  container.style.width = "50vw";
-  canvasRef.width = 500;
-  canvasRef.height = 500;
-  canvasRef.style.border = "1px solid #333333";
-});
+if (canvasCtx === null || !canvasCtx) { throw Error("Canvas context is null."); } // prettier-ignore
+
 /* window.addEventListener("resize", () => { */
 /*   canvasRef.width = container.clientWidth; */
 /*   canvasRef.height = container.clientHeight; */
 /*   container.style.width = "50vw"; */
 /* }); */
-
-// container.style.width = `${(window.outerWidth / 1.618).toString()}px`; // works
 
 // ///////////////////////////////////////////////
 // REGION_END: render DOM
@@ -65,10 +49,7 @@ window.addEventListener("load", () => {
 // ///////////////////////////////////////////////
 
 const handleDraw = ({ ctx, currentPoint, prevPoint }: Draw) => {
-  if (!prevPoint) {
-    return;
-  }
-
+  if (!prevPoint) { return; } // prettier-ignore
   ctx.strokeStyle = controlsColorPickerInput.value;
   ctx.lineWidth = controlsLineWidthPicker.valueAsNumber;
 
@@ -78,14 +59,22 @@ const handleDraw = ({ ctx, currentPoint, prevPoint }: Draw) => {
   ctx.stroke();
 };
 
-const { canvasRefSetter, onMouseDown, onClear } = useDraw(handleDraw);
-canvasRefSetter(canvasRef);
+const { setCanvasState, onMouseDown, onClear } = useDrawStore(handleDraw);
+setCanvasState(canvasRef);
+
 canvasRef.addEventListener("mousedown", onMouseDown);
 
 window.addEventListener("load", () => {
   container.style.width = `${(window.outerWidth / 1.618).toString()}px`; // works
   canvasRef.width = container.clientWidth;
   canvasRef.height = container.clientHeight;
+  canvasRef.style.border = "1px solid #333333";
+});
+
+controlsClearButton?.addEventListener("click", (event) => {
+  event.preventDefault();
+  console.info(event.target, "Clearing canvas");
+  onClear();
 });
 
 // ///////////////////////////////////////////////
@@ -96,29 +85,44 @@ window.addEventListener("load", () => {
 // REGION_START: Websockets
 // ///////////////////////////////////////////////
 
+const isSSR = typeof window === "undefined";
+console.info("isSSR:", isSSR, "NODE_ENV:", process.env.NODE_ENV);
+
+const local_uri: URL["href"] = "http://localhost:8080";
+let server_uri: URL["href"] = "";
+
+try {
+  if (isSSR === true) {
+    dotenv.config();
+    if (process.env.SERVER_URI !== undefined)
+      server_uri = process.env.SERVER_URI || local_uri;
+  } else {
+    server_uri = local_uri;
+  }
+} catch (err) {
+  console.error(err);
+}
+
 /**
  * @see https://socket.io/docs/v4/typescript/
  * please note that the types are reversed
  */
-const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
-  "http://localhost:8080"
-);
-console.log("client_ready", socket);
+const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(server_uri); // prettier-ignore
+
 socket.emit("client_ready");
 
+/* Return early if the content of the current canvas as an image isn't supported.
+   This is useful if you want to save the image to disk. If you want to display
+   the image on the page, you can use `<img src="data:image/png;base64,..." />`. */
 socket.on("get_canvas_state", () => {
-  console.log("entering get_canvas_state");
-  // Return early if the content of the current canvas as an image isn't supported.
-  if (!canvasRef?.toDataURL()) {
-    return; // This is useful if you want to save the image to disk. If you want to display the image on the page, you can use `<img src="data:image/png;base64,..." />`.
-  }
-  console.log("get_canvas_state: sending canvas_state");
+  if (!canvasRef?.toDataURL()) { return; } // prettier-ignore
+
   socket.emit("canvas_state", canvasRef.toDataURL());
 });
 
 socket.on("canvas_state_from_server", (state: string) => {
-  console.log("canvas_state_from_server: received the state", state.length);
   const img = new Image();
+
   img.src = state;
   img.onload = () => {
     canvasCtx?.drawImage(img, 0, 0);
@@ -139,6 +143,7 @@ socket.on("chat_message", (msg) => {
   const item = document.createElement("li");
   item.textContent = msg;
   messagesListRef?.appendChild(item);
+
   // Scroll form mesageListRef
   messagesListRef?.scrollTo(0, document.body.scrollHeight); // FIXME: Currently wrapper is of fixed width,height. add verticla block y axis scrolling.
   window.scrollTo(0, document.body.scrollHeight); // FIXME: Currently wrapper is of fixed width,height. add verticla block y axis scrolling.
@@ -149,23 +154,8 @@ socket.on("chat_message", (msg) => {
 // ///////////////////////////////////////////////
 
 // ///////////////////////////////////////////////
-// REGION_START: event handlers
+// REGION_START: chat event handlers
 // ///////////////////////////////////////////////
-
-controlsClearButton?.addEventListener("click", (event) => {
-  event.preventDefault();
-  console.info(event.target, "Clearing canvas");
-  // handleClearCanvas();
-  onClear();
-});
-controlsColorPickerInput?.addEventListener("input", (event) => {
-  console.info(event.target, "Picking color");
-  // handleSetLineColor(event);
-});
-controlsLineWidthPicker?.addEventListener("input", (event) => {
-  console.info(event.target, "Picking color");
-  // handleSetLineColor(event);
-});
 
 formRef?.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -182,10 +172,8 @@ formRef?.addEventListener("submit", (event) => {
   }
 });
 
-console.log(formRef, messagesListRef, inputRef, sendRef);
-
 // ///////////////////////////////////////////////
-// REGION_END: event handlers
+// REGION_END: chat event handlers
 // ///////////////////////////////////////////////
 
 // ///////////////////////////////////////////////

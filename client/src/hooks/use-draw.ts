@@ -1,5 +1,7 @@
 type Point = {
+  /** x coordinate in canvas. */
   x: number;
+  /** y coordinate in canvas. */
   y: number;
 };
 
@@ -13,9 +15,120 @@ export type DrawEventHandler = (draw: Draw) => void;
 
 export type UseDrawResult = {
   // canvasRef: HTMLCanvasElement | null;
-  canvasRefSetter: (canvas: HTMLCanvasElement | null) => void;
+  setCanvasState: (canvas: HTMLCanvasElement | null) => void;
   onMouseDown: () => void;
   onClear: () => void;
+};
+
+/** Initial state. */
+export type CanvasState = {
+  isMouseDown: boolean;
+  prevPoint: Point | null;
+  canvasRef: HTMLCanvasElement | null;
+};
+
+function handleOnClear(canvasDrawState: CanvasState) {
+  return () => {
+    if (!canvasDrawState.canvasRef) {
+      return;
+    }
+    const ctx = canvasDrawState.canvasRef.getContext("2d");
+    if (!ctx) {
+      return;
+    }
+    ctx.clearRect(
+      0,
+      0,
+      canvasDrawState.canvasRef.width,
+      canvasDrawState.canvasRef.height
+    );
+  };
+}
+
+function handleComputePointInCanvas(canvasState: CanvasState) {
+  return (e: MouseEvent): Point | undefined => {
+    if (!canvasState.canvasRef) {
+      return;
+    }
+
+    const rect: DOMRect = canvasState.canvasRef.getBoundingClientRect();
+    const currPoint: Point = {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    };
+
+    return currPoint;
+  };
+}
+
+export const useDrawStore = (
+  onDrawTrigger: DrawEventHandler
+): UseDrawResult => {
+  const canvasState: CanvasState = {
+    isMouseDown: false,
+    prevPoint: null,
+    canvasRef: null,
+  };
+
+  const computePointInCanvas = handleComputePointInCanvas(canvasState);
+
+  /* Drawing logic. */
+
+  const mouseMoveHandler = (e: MouseEvent) => {
+    if (!canvasState.isMouseDown) {
+      return;
+    }
+    const currentPoint = computePointInCanvas(e);
+
+    const ctx = canvasState.canvasRef?.getContext("2d");
+    if (!ctx || !currentPoint) {
+      return;
+    }
+
+    onDrawTrigger({ ctx, currentPoint, prevPoint: canvasState.prevPoint });
+    canvasState.prevPoint = currentPoint;
+  };
+
+  const mouseUpHandler = (_e: MouseEvent) => {
+    canvasState.isMouseDown = false;
+    canvasState.prevPoint = null;
+  };
+
+  /* Add event listeners. */
+
+  const addEventListeners = (canvas: HTMLCanvasElement) => {
+    canvas.addEventListener("mousemove", mouseMoveHandler);
+    window.addEventListener("mouseup", mouseUpHandler);
+  };
+
+  const removeEventListeners = (canvas: HTMLCanvasElement) => {
+    canvas.removeEventListener("mousemove", mouseMoveHandler);
+    window.removeEventListener("mouseup", mouseUpHandler);
+  };
+
+  /* Return functional state setters and callback triggers. */
+
+  const setCanvasState = (element: CanvasState["canvasRef"]) => {
+    if (canvasState.canvasRef) {
+      removeEventListeners(canvasState.canvasRef);
+    }
+    canvasState.canvasRef = element;
+    if (canvasState.canvasRef) {
+      addEventListeners(canvasState.canvasRef);
+    }
+  };
+
+  const onMouseDown = () => {
+    canvasState.isMouseDown = true;
+  };
+
+  const onClear = handleOnClear(canvasState);
+
+  return {
+    setCanvasState,
+    onMouseDown,
+    onClear,
+  };
 };
 
 export const useDraw = (onDraw: DrawEventHandler): UseDrawResult => {
@@ -84,7 +197,7 @@ export const useDraw = (onDraw: DrawEventHandler): UseDrawResult => {
     }
   };
 
-  return { canvasRefSetter, onMouseDown, onClear: clear };
+  return { setCanvasState: canvasRefSetter, onMouseDown, onClear: clear };
 };
 
 // ARCHIVE

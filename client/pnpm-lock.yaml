@@ -9,6 +9,9 @@ devDependencies:
   '@types/node':
     specifier: ^18.16.1
     version: 18.16.1
+  dotenv:
+    specifier: ^16.0.3
+    version: 16.0.3
   typescript:
     specifier: ^5.0.2
     version: 5.0.2
@@ -235,6 +238,11 @@ packages:
     dependencies:
       ms: 2.1.2
     dev: false
+
+  /dotenv@16.0.3:
+    resolution: {integrity: sha512-7GO6HghkA5fYG9TYnNxi14/7K9f5occMlp3zXAuSxn7CKCxt9xbNWG7yF8hTCSUchlfWSe3uLmlPfigevRItzQ==}
+    engines: {node: '>=12'}
+    dev: true
 
   /engine.io-client@6.4.0:
     resolution: {integrity: sha512-GyKPDyoEha+XZ7iEqam49vz6auPnNJ9ZBfy89f+rMMas8AuiMWOZ9PVzu8xb9ZC6rafUqiGHSCfu22ih66E+1g==}
