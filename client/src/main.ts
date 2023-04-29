@@ -26,6 +26,7 @@ const sendRef = document.getElementById("sendRef");
 
 const controlsClearButton = document.getElementById("controlsClearButton") as HTMLButtonElement; // prettier-ignore
 const controlsUndoHistoryButton = document.getElementById( "controlsUndoHistoryButton") as HTMLButtonElement; // prettier-ignore
+const controlsRedoHistoryButton = document.getElementById( "controlsRedoHistoryButton") as HTMLButtonElement; // prettier-ignore
 const controlsColorPickerInput = document.getElementById( "controlsColorPickerInput") as HTMLInputElement; // prettier-ignore
 const controlsLineWidthPicker = document.getElementById( "controlsLineWidthPicker") as HTMLInputElement; // prettier-ignore
 const controlsFullscreenCheckbox = document.getElementById( "controlsFullscreenCheckbox") as HTMLInputElement; // prettier-ignore
@@ -57,7 +58,9 @@ if (canvasCtx === null || !canvasCtx) { throw Error("Canvas context is null."); 
 // ///////////////////////////////////////////////
 // NOTE: You can move this to hooks or store.
 
-const canvasHistory: ImageData[] = [];
+const canvasHistory: ImageData[] = []; // persistent current backups.
+const canvasHistoryBackup: ImageData[] = []; // for redo cached backups.
+const HISTORY_LIMIT = 50;
 
 // ///////////////////////////////////////////////
 // REGION_END: canvas state
@@ -70,8 +73,11 @@ const canvasHistory: ImageData[] = [];
 function createLine({ prevPoint, currentPoint, ctx }: Draw) {
   const imagedata = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
   canvasHistory.push(imagedata); // Save the canvas state before modifying it.
-  if (canvasHistory.length > 50 && canvasHistory.length > 0) {
-    canvasHistory.shift(); // Removes the first element from an array and returns it.
+  if (canvasHistory.length > HISTORY_LIMIT && canvasHistory.length > 0) {
+    const firstElement = canvasHistory.shift(); // Removes the first element from an array and returns it.
+    // if (firstElement) {
+    //   canvasHistoryBackup.push(firstElement); // Save the first element for redo.
+    // }
   }
 
   socket.emit("draw_line", {
@@ -84,10 +90,22 @@ function createLine({ prevPoint, currentPoint, ctx }: Draw) {
 }
 
 function undoHistory() {
-  if (canvasHistory.length > 1) {
-    canvasHistory.pop(); // Remove the last state of the canvas.
+  if (canvasHistory.length > 0) {
+    const firstElement = canvasHistory.pop(); // Remove the last state of the canvas.
+    if (firstElement) {
+      canvasHistoryBackup.push(firstElement); // Save the first element for redo.
+    }
     const lastCanvasState = canvasHistory[canvasHistory.length - 1]; // Get the previous state.
     canvasCtx?.putImageData(lastCanvasState, 0, 0); // Redraw the canvas with previous state.
+  }
+}
+
+function redoHistory() {
+  if (canvasHistoryBackup.length > 0) {
+    const lastCanvasState = canvasHistoryBackup.pop(); // Get the previous state.
+    if (lastCanvasState) {
+      canvasCtx?.putImageData(lastCanvasState, 0, 0); // Redraw the canvas with previous state.
+    }
   }
 }
 
@@ -161,8 +179,13 @@ controlsFullscreenCheckbox?.addEventListener("change", (event: any) => {
 controlsUndoHistoryButton?.addEventListener("click", (event) => {
   event.preventDefault();
   console.info(event.target, "Undoing history");
-  undoHistory();
-  // TODO: set disabled if canvasHistory.length === 0
+  undoHistory(); // TODO: set disabled if canvasHistory.length === 0
+});
+
+controlsRedoHistoryButton?.addEventListener("click", (event) => {
+  event.preventDefault();
+  console.info(event.target, "Redoing history");
+  redoHistory(); // TODO: set disabled if canvasHistoryBackup.length === 0
 });
 window.addEventListener("load", () => {
   if (controlsFullscreenCheckbox.checked) {
@@ -305,7 +328,18 @@ function setupHomePage(): void {
       <input type="color" value="#eeeeee" name="CromePicker" title="Color picker" id="controlsColorPickerInput" />
       <input type="number" min="3" max="9" title="Line width" value="2" name="lineWidthPicker" id="controlsLineWidthPicker" />
       <input type="checkbox" name="fullscreen" id="controlsFullscreenCheckbox" />
-      <button name="undoHistory" id="controlsUndoHistoryButton" title="Undo History">Undo</button>
+      <button name="undoHistory" id="controlsUndoHistoryButton" title="Undo History">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+          class="w-6 h-6">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+        </svg>
+      </button>
+      <button name="redoHistory" id="controlsRedoHistoryButton" title="Redo History">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+          class="w-6 h-6">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 15l6-6m0 0l-6-6m6 6H9a6 6 0 000 12h3" />
+        </svg>
+      </button>
     </div>
   </header>
 
