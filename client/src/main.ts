@@ -11,6 +11,7 @@ import {
   ServerToClientEvents,
 } from "./lib/types/socket.ts";
 import "./style.css";
+import { lerp } from "./utils.ts";
 
 // //////////////////////////////////////////////
 // REGION_START: render DOM
@@ -23,10 +24,12 @@ const messagesListRef = document.getElementById("messagesListRef");
 const inputRef = document.getElementById("inputRef") as HTMLInputElement;
 const sendRef = document.getElementById("sendRef");
 
-const controlsClearButton = document.getElementById("controlsClearButton");
+const controlsClearButton = document.getElementById("controlsClearButton") as HTMLButtonElement; // prettier-ignore
+const controlsUndoHistoryButton = document.getElementById( "controlsUndoHistoryButton") as HTMLButtonElement; // prettier-ignore
 const controlsColorPickerInput = document.getElementById( "controlsColorPickerInput") as HTMLInputElement; // prettier-ignore
 const controlsLineWidthPicker = document.getElementById( "controlsLineWidthPicker") as HTMLInputElement; // prettier-ignore
 const controlsFullscreenCheckbox = document.getElementById( "controlsFullscreenCheckbox") as HTMLInputElement; // prettier-ignore
+
 let colorState = controlsColorPickerInput.value;
 
 const canvasRef = document.getElementsByTagName("canvas")[0];
@@ -50,49 +53,40 @@ if (canvasCtx === null || !canvasCtx) { throw Error("Canvas context is null."); 
 // ///////////////////////////////////////////////
 
 // ///////////////////////////////////////////////
+// REGION_START: canvas state
+// ///////////////////////////////////////////////
+// NOTE: You can move this to hooks or store.
+
+const canvasHistory: ImageData[] = [];
+
+// ///////////////////////////////////////////////
+// REGION_END: canvas state
+// ///////////////////////////////////////////////
+
+// ///////////////////////////////////////////////
 // REGION_START: hooks
 // ///////////////////////////////////////////////
 
-/**
- * An object containing the values to interpolate.
- * @property {number} a - The starting value.
- * @property {number} b - The ending value.
- * @property {number} t - The interpolation factor, usually between 0 and 1.
- */
-type Lerp = {
-  a: number;
-  b: number;
-  t: number;
-};
-
-/**
- * Linearly interpolate between two values.
- * @param {Lerp["a"]} a - The starting value.
- * @param {Lerp["b"]} b - The ending value.
- * @param {Lerp["t"]} t - The interpolation factor, usually between 0 and 1.
- * @returns {number} The interpolated value.
- *
- * Use linear interpolation (`lerp`) to create a smooth line as the mouse move
- * over the canvas. We interpolate between the previous mouse position and the
- * current mouse position.
- */
-function lerp(a: Lerp["a"], b: Lerp["b"], t: Lerp["t"]) {
-  if (t > 1) {
-    t = 1;
-  } else if (t < 0) {
-    t = 0;
-  }
-
-  return a + (b - a) * t;
-}
-
 function createLine({ prevPoint, currentPoint, ctx }: Draw) {
+  canvasHistory.push(
+    ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height)
+  ); // Save the canvas state before modifying it.
+
   socket.emit("draw_line", {
     prevPoint,
     currentPoint,
     color: colorState,
   } satisfies DrawLineSocketProps);
+
   handleDrawLine({ ctx, currentPoint, prevPoint, color: colorState });
+}
+
+function undoHistory() {
+  if (canvasHistory.length > 1) {
+    canvasHistory.pop(); // Remove the last state of the canvas.
+    const lastCanvasState = canvasHistory[canvasHistory.length - 1]; // Get the previous state.
+    canvasCtx?.putImageData(lastCanvasState, 0, 0); // Redraw the canvas with previous state.
+  }
 }
 
 /**
@@ -107,11 +101,9 @@ const handleDrawLine = ({
 }: DrawLineProps) => {
   if (!prevPoint) { return; } // prettier-ignore
   const lineColor = color || colorState || controlsColorPickerInput.value;
-
   ctx.beginPath();
   ctx.strokeStyle = lineColor; // event.hex.
   ctx.lineWidth = controlsLineWidthPicker.valueAsNumber;
-
   // First calculate the distance between prev and curr mouse positons. Then
   // divide the distance by desire increment size to get the number of points
   // we want to interpolate between the two positions.
@@ -140,31 +132,18 @@ const handleDrawLine = ({
   ctx.fill();
 };
 
-// const { setCanvasState, onMouseDown, onClear } = useDrawStore(handleDraw);
 const { setCanvasState, onMouseDown, onClear } = useDrawStore(createLine);
 setCanvasState(canvasRef);
-
 canvasRef.addEventListener("mousedown", onMouseDown);
 
-window.addEventListener("load", () => {
-  // container.style.width = `${(window.outerWidth / 1.618).toString()}px`; // works
-  // canvasRef.width = container.clientWidth;
-  // canvasRef.height = container.clientHeight;
-  if (controlsFullscreenCheckbox.checked) {
-    canvasRef.width = window.innerWidth;
-    canvasRef.height = window.innerHeight;
-  }
-  canvasRef.style.border = "1px solid #333333";
+controlsColorPickerInput?.addEventListener("change", (event: any) => {
+  colorState = event.currentTarget.value;
 });
-
 controlsClearButton?.addEventListener("click", (event) => {
   event.preventDefault();
   console.info(event.target, "Clearing canvas");
   socket.emit("clear");
   onClear();
-});
-controlsColorPickerInput?.addEventListener("change", (event: any) => {
-  colorState = event.currentTarget.value;
 });
 controlsFullscreenCheckbox?.addEventListener("change", (event: any) => {
   const isFullscreen = event.currentTarget.checked;
@@ -175,6 +154,19 @@ controlsFullscreenCheckbox?.addEventListener("change", (event: any) => {
     canvasRef.width = container.clientWidth;
     canvasRef.height = container.clientHeight;
   }
+});
+controlsUndoHistoryButton?.addEventListener("click", (event) => {
+  event.preventDefault();
+  console.info(event.target, "Undoing history");
+  undoHistory();
+  // TODO: set disabled if canvasHistory.length === 0
+});
+window.addEventListener("load", () => {
+  if (controlsFullscreenCheckbox.checked) {
+    canvasRef.width = window.innerWidth;
+    canvasRef.height = window.innerHeight;
+  }
+  canvasRef.style.border = "1px solid #333333";
 });
 
 // ///////////////////////////////////////////////
@@ -235,8 +227,7 @@ socket.on(
       return console.error("No canvas context");
     }
     // Here color received is used in the circle: the arc in ctx small circles
-    // inside lines, is used to indicate the presence of the other
-    // multiplayers.
+    // inside lines, is used to indicate the presence of the other multiplayers.
     handleDrawLine({ ctx: canvasCtx, currentPoint, prevPoint, color });
   }
 );
@@ -246,7 +237,6 @@ socket.on("message", (message) => {
   const welcomeMessage = document.createElement("li");
   welcomeMessage.textContent = message;
   welcomeMessage.classList.add("socket-message-welcome");
-
   messagesListRef?.appendChild(welcomeMessage);
 });
 
@@ -296,24 +286,25 @@ function setupHomePage(): void {
 <div class="wrapper">
 
   <header class="header">
-        <h1 class="logo">
-          canvas multiplayer
-        </h1>
+    <h1 class="logo">
+      canvas multiplayer
+    </h1>
     <div class="controls">
-          <button id="controlsClearButton" title="Clear">
-            <svg class="svg-icon" stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round"
-              stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
-              <polyline points="3 6 5 6 21 6"></polyline>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-              <line x1="10" y1="11" x2="10" y2="17"></line>
-              <line x1="14" y1="11" x2="14" y2="17"></line>
-            </svg>
-          </button>
-          <input type="color" value="#eeeeee" name="CromePicker" title="Color picker" id="controlsColorPickerInput" />
-          <input type="number" min="3" max="9" title="Line width" value="2" name="lineWidthPicker" id="controlsLineWidthPicker" />
+      <button id="controlsClearButton" title="Clear">
+        <svg class="svg-icon" stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round"
+          stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          <line x1="10" y1="11" x2="10" y2="17"></line>
+          <line x1="14" y1="11" x2="14" y2="17"></line>
+        </svg>
+      </button>
+      <input type="color" value="#eeeeee" name="CromePicker" title="Color picker" id="controlsColorPickerInput" />
+      <input type="number" min="3" max="9" title="Line width" value="2" name="lineWidthPicker" id="controlsLineWidthPicker" />
       <input type="checkbox" name="fullscreen" id="controlsFullscreenCheckbox" />
-        </div>
-      </header>
+      <button name="undoHistory" id="controlsUndoHistoryButton" title="Undo History">Undo</button>
+    </div>
+  </header>
 
   <main>
     <section>
