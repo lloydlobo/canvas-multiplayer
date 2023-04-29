@@ -26,6 +26,7 @@ const sendRef = document.getElementById("sendRef");
 const controlsClearButton = document.getElementById("controlsClearButton");
 const controlsColorPickerInput = document.getElementById( "controlsColorPickerInput") as HTMLInputElement; // prettier-ignore
 const controlsLineWidthPicker = document.getElementById( "controlsLineWidthPicker") as HTMLInputElement; // prettier-ignore
+const controlsFullscreenCheckbox = document.getElementById( "controlsFullscreenCheckbox") as HTMLInputElement; // prettier-ignore
 let colorState = controlsColorPickerInput.value;
 
 const canvasRef = document.getElementsByTagName("canvas")[0];
@@ -91,14 +92,19 @@ function createLine({ prevPoint, currentPoint, ctx }: Draw) {
     currentPoint,
     color: colorState,
   } satisfies DrawLineSocketProps);
-  handleDraw({ ctx, currentPoint, prevPoint, color: colorState });
+  handleDrawLine({ ctx, currentPoint, prevPoint, color: colorState });
 }
 
 /**
  * Handle drawing on a canvas using linear interpolation to create a smooth line.
  * @param {Draw} param0 - An object containing the canvas context, current point, and previous point.
  */
-const handleDraw = ({ ctx, currentPoint, prevPoint, color }: DrawLineProps) => {
+const handleDrawLine = ({
+  ctx,
+  currentPoint,
+  prevPoint,
+  color,
+}: DrawLineProps) => {
   if (!prevPoint) { return; } // prettier-ignore
   const lineColor = color || colorState || controlsColorPickerInput.value;
 
@@ -144,6 +150,10 @@ window.addEventListener("load", () => {
   // container.style.width = `${(window.outerWidth / 1.618).toString()}px`; // works
   // canvasRef.width = container.clientWidth;
   // canvasRef.height = container.clientHeight;
+  if (controlsFullscreenCheckbox.checked) {
+    canvasRef.width = window.innerWidth;
+    canvasRef.height = window.innerHeight;
+  }
   canvasRef.style.border = "1px solid #333333";
 });
 
@@ -155,6 +165,16 @@ controlsClearButton?.addEventListener("click", (event) => {
 });
 controlsColorPickerInput?.addEventListener("change", (event: any) => {
   colorState = event.currentTarget.value;
+});
+controlsFullscreenCheckbox?.addEventListener("change", (event: any) => {
+  const isFullscreen = event.currentTarget.checked;
+  if (isFullscreen) {
+    canvasRef.width = window.innerWidth;
+    canvasRef.height = window.innerHeight;
+  } else {
+    canvasRef.width = container.clientWidth;
+    canvasRef.height = container.clientHeight;
+  }
 });
 
 // ///////////////////////////////////////////////
@@ -217,7 +237,7 @@ socket.on(
     // Here color received is used in the circle: the arc in ctx small circles
     // inside lines, is used to indicate the presence of the other
     // multiplayers.
-    handleDraw({ ctx: canvasCtx, currentPoint, prevPoint, color });
+    handleDrawLine({ ctx: canvasCtx, currentPoint, prevPoint, color });
   }
 );
 socket.on("clear", onClear);
@@ -275,13 +295,11 @@ function setupHomePage(): void {
   document.querySelector<HTMLDivElement>(`#app`)!.innerHTML = /*html*/ `
 <div class="wrapper">
 
-  <main>
-    <section>
-      <header class="header" >
+  <header class="header">
         <h1 class="logo">
           canvas multiplayer
         </h1>
-        <div class="controls" >
+    <div class="controls">
           <button id="controlsClearButton" title="Clear">
             <svg class="svg-icon" stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round"
               stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
@@ -293,9 +311,11 @@ function setupHomePage(): void {
           </button>
           <input type="color" value="#eeeeee" name="CromePicker" title="Color picker" id="controlsColorPickerInput" />
           <input type="number" min="3" max="9" title="Line width" value="2" name="lineWidthPicker" id="controlsLineWidthPicker" />
+      <input type="checkbox" name="fullscreen" id="controlsFullscreenCheckbox" />
         </div>
       </header>
-    </section>
+
+  <main>
     <section>
       <div class="canvas-container">
         <canvas id="canvasRef" width="600" height="600">Your browser does not support canvas element.</canvas>
@@ -304,11 +324,10 @@ function setupHomePage(): void {
     </section>
   </main>
 
-  <aside>
+  <aside id="messageAsideRef">
     <ul id="messagesListRef" class="messages debug!"></ul>
-
     <form id="formRef" action="" class="messages_form">
-      <input id="inputRef" type="text"  autocomplete="off" placeholder="Send a message&#8230;" />
+      <input id="inputRef" type="text" autocomplete="off" placeholder="Send a message&#8230;" />
       <!-- <label for="sendRef">Send</label> -->
       <button id="sendRef" type="submit" title="Send" class="messages_send">
         <svg class="svg-icon h-4 w-4 mr-1" viewBox="0 0 24 24">
