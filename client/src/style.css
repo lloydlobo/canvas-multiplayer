@@ -162,12 +162,16 @@ aside#messageAsideRef {
   right: 0;
   height: 100%;
   position: absolute;
-  background: rgba(0, 0, 0, 0.15);
   border-radius: 0.5rem;
   display: flex;
   justify-content: space-between;
   flex-direction: column;
   padding: 0.5rem;
+  opacity: 0.618;
+}
+aside#messageAsideRef:hover {
+  background: rgba(0, 0, 0, 0.15);
+  opacity: 1;
 }
 
 aside:not(#formRef) {
@@ -286,7 +290,7 @@ canvas#canvasRef {
 
 #messagesListRef > li:nth-child(odd) {
   color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  background-color: #24242410;
 }
 
 #formRef > button#sendRef {
