@@ -68,9 +68,11 @@ const canvasHistory: ImageData[] = [];
 // ///////////////////////////////////////////////
 
 function createLine({ prevPoint, currentPoint, ctx }: Draw) {
-  canvasHistory.push(
-    ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height)
-  ); // Save the canvas state before modifying it.
+  const imagedata = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
+  canvasHistory.push(imagedata); // Save the canvas state before modifying it.
+  if (canvasHistory.length > 50 && canvasHistory.length > 0) {
+    canvasHistory.shift(); // Removes the first element from an array and returns it.
+  }
 
   socket.emit("draw_line", {
     prevPoint,
@@ -110,7 +112,8 @@ const handleDrawLine = ({
   const distance = Math.sqrt(
     (currentPoint.x - prevPoint.x) ** 2 + (currentPoint.y - prevPoint.y) ** 2
   );
-  const incrementSize = 20;
+  // PERF: use a for loop, to gather all points, and concatenate as one long line, ref radu.
+  const incrementSize = 5;
   const numPoints = Math.ceil(distance / incrementSize); // Adjust the increment size here to make the line smoother or rougher.
   for (let i = 0; i <= numPoints; i++) {
     const t = i / numPoints;
