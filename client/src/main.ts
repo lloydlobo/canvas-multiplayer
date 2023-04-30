@@ -3,16 +3,19 @@ import { io, Socket } from "socket.io-client";
 import { cleanUpProfanity } from "./helpers.ts";
 import { useDrawStore } from "./hooks/use-draw-store.ts";
 import {
-  Draw,
+  AppCanvasState,
   DrawLineProps,
   DrawLineSocketProps,
+  MouseTuple,
+  Point,
 } from "./lib/types/canvas.ts";
 import {
   ClientToServerEvents,
   ServerToClientEvents,
 } from "./lib/types/socket.ts";
 import "./style.css";
-import { lerp } from "./utils.ts";
+import { lerp, lerpIncrementalPath } from "./utils.ts";
+import { IncomingMessage } from "http";
 
 // //////////////////////////////////////////////
 // REGION_START: render DOM
@@ -71,25 +74,6 @@ const HISTORY_LIMIT = 50;
 // REGION_START: hooks
 // ///////////////////////////////////////////////
 
-function createLine({ prevPoint, currentPoint, ctx }: Draw) {
-  const imagedata = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
-  canvasHistory.push(imagedata); // Save the canvas state before modifying it.
-  if (canvasHistory.length > HISTORY_LIMIT && canvasHistory.length > 0) {
-    const firstElement = canvasHistory.shift(); // Removes the first element from an array and returns it.
-    // if (firstElement) {
-    //   canvasHistoryBackup.push(firstElement); // Save the first element for redo.
-    // }
-  }
-
-  socket.emit("draw_line", {
-    prevPoint,
-    currentPoint,
-    color: colorState,
-  } satisfies DrawLineSocketProps);
-
-  handleDrawLine({ ctx, currentPoint, prevPoint, color: colorState });
-}
-
 function undoHistory() {
   if (canvasHistory.length > 0) {
     const firstElement = canvasHistory.pop(); // Remove the last state of the canvas.
@@ -125,25 +109,25 @@ const handleDrawLine = ({
   ctx.beginPath();
   ctx.strokeStyle = lineColor; // event.hex.
   ctx.lineWidth = controlsLineWidthPicker.valueAsNumber;
-  // First calculate the distance between prev and curr mouse positons. Then
-  // divide the distance by desire increment size to get the number of points
-  // we want to interpolate between the two positions.
-  const distance = Math.sqrt(
-    (currentPoint.x - prevPoint.x) ** 2 + (currentPoint.y - prevPoint.y) ** 2
-  );
-  // PERF: use a for loop, to gather all points, and concatenate as one long line, ref radu.
-  const incrementSize = 5;
-  const numPoints = Math.ceil(distance / incrementSize); // Adjust the increment size here to make the line smoother or rougher.
+
+  const { numPoints, distance } = lerpIncrementalPath({
+    currentPoint,
+    prevPoint,
+  });
+
+  // moveToLineToCtxLines({ ctx, prevPoint, currentPoint, numPoints });
   for (let i = 0; i <= numPoints; i++) {
     const t = i / numPoints;
     const x = lerp(prevPoint.x, currentPoint.x, t);
     const y = lerp(prevPoint.y, currentPoint.y, t);
+
     if (i === 0) {
       ctx.moveTo(x, y); // ctx.moveTo(prevPoint.x, prevPoint.y);
     } else {
-      ctx.lineTo(x, y); // ctx.lineTo(currentPoint.x, currentPoint.y);
+      ctx.lineTo(x, y);
     }
   }
+
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
   ctx.stroke();
@@ -154,21 +138,95 @@ const handleDrawLine = ({
   ctx.fill();
 };
 
+// NOTE: We stroke a single line after the points are connected.
+const handleDraw = {
+  path: (
+    ctx: CanvasRenderingContext2D,
+    path: NonNullable<AppCanvasState["path"]>,
+    color = "yellow"
+  ) => {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = controlsLineWidthPicker.valueAsNumber || 2;
+
+    ctx.beginPath();
+    ctx.moveTo(...path[0]);
+
+    const hasSmoothCurves = true; // NOTE: Toggle it. This is a temporary solution.
+    if (hasSmoothCurves) {
+      for (let i = 2; i < path.length; i++) {
+        const prevPoint: Point = { x: path[i - 1][0], y: path[i - 1][1] };
+        const currentPoint: Point = { x: path[i][0], y: path[i][1] };
+        const { numPoints } = lerpIncrementalPath({ currentPoint, prevPoint, incrementSize: 5, }); //prettier-ignore
+        const t = i / numPoints;
+        const x = lerp(prevPoint.x, currentPoint.x, t);
+        const y = lerp(prevPoint.y, currentPoint.y, t);
+        ctx.lineTo(x, y);
+      }
+    } else {
+      for (let i = 1; i < path.length; i++) {
+        ctx.lineTo(...path[i]);
+      }
+    }
+
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.stroke();
+
+    ctx.fillStyle = controlsColorPickerInput.value || colorState || color;
+    ctx.beginPath();
+    // ctx.arc(prevPoint.x, prevPoint.y, 1, 0, 2 * Math.PI);
+    ctx.arc(path[0][0], path[0][1], 1, 0, 2 * Math.PI);
+
+    ctx.fill();
+  },
+};
+
+// function createLine({ prevPoint, currentPoint, ctx }: Draw) {
+function createLine({
+  prevPoint,
+  currentPoint,
+  ctx,
+  path,
+}: Partial<AppCanvasState>) {
+  if (!ctx) {
+    return;
+  }
+  handleDraw.path(ctx, path ?? [], colorState);
+
+  const imagedata = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
+  canvasHistory.push(imagedata); // Save the canvas state before modifying it.
+
+  if (canvasHistory.length > HISTORY_LIMIT && canvasHistory.length > 0) {
+    const _firstElement = canvasHistory.shift(); // Removes the first element from an array and returns it. if (firstElement) { canvasHistoryBackup.push(firstElement); // Save the first element for redo. }
+  }
+
+  if (!ctx || !currentPoint || !prevPoint) {
+    return;
+  }
+  const data: DrawLineSocketProps = { prevPoint, currentPoint, color: colorState, }; // prettier-ignore
+  socket.emit("draw_line", data);
+  // NOTE: Shouldn't handleDrawLine be called before `socket.emit`.
+  // handleDrawLine({ ctx, currentPoint, prevPoint, color: colorState });
+}
+
 const { setCanvasState, onMouseDown, onClear } = useDrawStore(createLine);
 setCanvasState(canvasRef);
+
 canvasRef.addEventListener("mousedown", onMouseDown);
 
 controlsColorPickerInput?.addEventListener("change", (event: any) => {
   colorState = event.currentTarget.value;
 });
+
 controlsClearButton?.addEventListener("click", (event) => {
-  event.preventDefault();
-  console.info(event.target, "Clearing canvas");
+  event.preventDefault(); // console.info(event.target, "Clearing canvas");
   socket.emit("clear");
   onClear();
 });
+
 controlsFullscreenCheckbox?.addEventListener("change", (event: any) => {
   const isFullscreen = event.currentTarget.checked;
+
   if (isFullscreen) {
     canvasRef.width = window.innerWidth;
     canvasRef.height = window.innerHeight;
@@ -177,17 +235,17 @@ controlsFullscreenCheckbox?.addEventListener("change", (event: any) => {
     canvasRef.height = container.clientHeight;
   }
 });
+
 controlsUndoHistoryButton?.addEventListener("click", (event) => {
-  event.preventDefault();
-  console.info(event.target, "Undoing history");
+  event.preventDefault(); // console.info(event.target, "Undoing history");
   undoHistory(); // TODO: set disabled if canvasHistory.length === 0
 });
 
 controlsRedoHistoryButton?.addEventListener("click", (event) => {
-  event.preventDefault();
-  console.info(event.target, "Redoing history");
+  event.preventDefault(); // console.info(event.target, "Redoing history");
   redoHistory(); // TODO: set disabled if canvasHistoryBackup.length === 0
 });
+
 window.addEventListener("load", () => {
   if (controlsFullscreenCheckbox.checked) {
     canvasRef.width = window.innerWidth;
@@ -230,35 +288,42 @@ const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(server_uri
 
 socket.emit("client_ready");
 
+/* Websockets for canvas */
+
 /* Return early if the content of the current canvas as an image isn't supported.
    This is useful if you want to save the image to disk. If you want to display
    the image on the page, you can use `<img src="data:image/png;base64,..." />`. */
 socket.on("get_canvas_state", () => {
-  if (!canvasRef?.toDataURL()) { return; } // prettier-ignore
+  if (!canvasRef?.toDataURL()) {
+    return;
+  }
   console.info("Sending canvas state to server");
   socket.emit("canvas_state", canvasRef.toDataURL());
 });
+
 socket.on("canvas_state_from_server", (state: string) => {
   console.info("Received canvas state from server");
   const img = new Image();
   img.src = state;
-  // TODO: this needs useEffect for the image to load consistently.
   img.onload = () => {
     canvasCtx?.drawImage(img, 0, 0);
-  };
+  }; // TODO: this may need useEffect for the image to load consistently.
 });
+
 socket.on(
   "draw_line",
   ({ prevPoint, currentPoint, color }: DrawLineSocketProps) => {
     if (!canvasCtx) {
       return console.error("No canvas context");
-    }
-    // Here color received is used in the circle: the arc in ctx small circles
+    } // Here color received is used in the circle: the arc in ctx small circles
     // inside lines, is used to indicate the presence of the other multiplayers.
     handleDrawLine({ ctx: canvasCtx, currentPoint, prevPoint, color });
   }
 );
+
 socket.on("clear", onClear);
+
+/* Websockets for chat */
 
 socket.on("message", (message) => {
   const welcomeMessage = document.createElement("li");
@@ -271,8 +336,7 @@ socket.on("chat_message", (msg) => {
   const item = document.createElement("li");
   item.textContent = msg;
   messagesListRef?.appendChild(item);
-
-  // Scroll form mesageListRef
+  // Scroll form #mesageListRef.
   messagesListRef?.scrollTo(0, document.body.scrollHeight); // FIXME: Currently wrapper is of fixed width,height. add verticla block y axis scrolling.
   window.scrollTo(0, document.body.scrollHeight); // FIXME: Currently wrapper is of fixed width,height. add verticla block y axis scrolling.
 });
@@ -287,26 +351,28 @@ socket.on("chat_message", (msg) => {
 
 formRef?.addEventListener("submit", (event) => {
   event.preventDefault();
-  if (inputRef?.value) {
-    const input = inputRef.value;
 
-    let filteredInput = "";
-    input.split(" ").forEach((word) => {
-      filteredInput += cleanUpProfanity(word, "*", 2);
-      filteredInput += " "; // Add space between words.
-    });
-
-    const now = new Date();
-    const timestamp = `${now.getHours().toString().padStart(2, "0")}:${now
-      .getMinutes()
-      .toString()
-      .padStart(2, "0")}`;
-
-    const msg = `${timestamp}: ${filteredInput}`;
-    socket.emit("chat_message", msg);
-
-    inputRef.value = ""; // Clear user input.
+  const input = inputRef.value;
+  if (!input) {
+    return;
   }
+
+  let filteredInput = "";
+  input.split(" ").forEach((word) => {
+    filteredInput += cleanUpProfanity(word, "*", 2);
+    filteredInput += " "; // Add space between words.
+  });
+
+  const now = new Date();
+  const timestamp = `${now.getHours().toString().padStart(2, "0")}:${now
+    .getMinutes()
+    .toString()
+    .padStart(2, "0")}`;
+
+  const msg = `${timestamp}: ${filteredInput}`;
+  socket.emit("chat_message", msg);
+
+  inputRef.value = ""; // Clear user input.
 });
 
 // ///////////////////////////////////////////////

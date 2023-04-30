@@ -1,8 +1,10 @@
 import * as filter from "leo-profanity";
+import profanity from "../src/lib/data/profanity.json";
 
 // var Filter = require("bad-words"),
 //   filter = new Filter(); // console.log(filter.clean("Don't be an ash0le")); //Don't be an ******
 
+const PROFANE_ALLOWED_LIST: string[] = profanity.allowed;
 const PROFANE_LIST = filter.list();
 const PILE_OF_POO = "\u{1F4A9}"; // Emoji.
 
@@ -10,28 +12,17 @@ function applyWordRegex(word: string): RegExp {
   return new RegExp(word, "gi");
 }
 
-export function cleanUpProfanity(
-  input: string,
-  replaceKey = PILE_OF_POO,
-  limiter = 2
-): string {
+// prettier-ignore
+export function cleanUpProfanity(input: string, replaceKey = PILE_OF_POO, limiter = 2): string {
   if (limiter <= 0 || limiter === null) {
     limiter = 2;
   }
-  if (
-    replaceKey === "" ||
-    replaceKey === " " ||
-    replaceKey === undefined ||
-    replaceKey === null
-  ) {
+  if (replaceKey === "" || replaceKey === " " || replaceKey === undefined || replaceKey === null) {
     replaceKey = PILE_OF_POO;
   }
-
   for (const word of PROFANE_LIST) {
-    if (input.toLowerCase().includes(word)) {
-      const replaceValue =
-        input.substring(0, limiter) + replaceKey.repeat(word.length - limiter);
-
+    if (input.toLowerCase().includes(word) && !PROFANE_ALLOWED_LIST.includes(input.toLowerCase())) {
+      const replaceValue = input.substring(0, limiter) + replaceKey.repeat(word.length - limiter);
       input = input.replace(applyWordRegex(word), replaceValue);
       break;
     }

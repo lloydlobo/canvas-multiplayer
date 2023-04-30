@@ -17,7 +17,8 @@ export type DrawLineProps = Draw & {
 
 export type DrawLineSocketProps = Omit<DrawLineProps, "ctx">;
 
-export type DrawEventHandler = (draw: Draw) => void;
+// export type DrawEventHandler = (draw: Draw) => void;
+export type AppEventHandler = (draw: Partial<AppCanvasState>) => void;
 
 export type UseDrawResult = {
   setCanvasState: (canvas: HTMLCanvasElement | null) => void;
@@ -31,9 +32,11 @@ export type MouseTuple = [number, number];
 export type AppCanvasState = {
   isMouseDown: boolean;
   prevPoint: Point | null;
+  currentPoint: Point;
   canvasRef: HTMLCanvasElement | null;
   path: MouseTuple[] | null;
   paths: MouseTuple[][];
+  ctx: CanvasRenderingContext2D | null;
 };
 
 // Create a tuple with 2 members.

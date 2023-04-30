@@ -1,70 +1,91 @@
 import {
   AppCanvasState,
-  DrawEventHandler,
+  AppEventHandler,
   MouseTuple as MousePosition,
   MouseTuple,
   Point,
   UseDrawResult,
 } from "../lib/types/canvas";
+import { lerp } from "../utils";
 
-export const useDrawStore = (onDraw: DrawEventHandler): UseDrawResult => {
+// export const useDrawStore = (onDraw: DrawEventHandler): UseDrawResult => {
+export const useDrawStore = (callback: AppEventHandler): UseDrawResult => {
   const canvasState: AppCanvasState = {
     isMouseDown: false,
     prevPoint: null,
     canvasRef: null,
     path: null,
     paths: [],
+    currentPoint: {
+      x: 0,
+      y: 0,
+    },
+    ctx: null,
   };
 
   const computePointInCanvas = handleComputePointInCanvas(canvasState);
 
   /* Drawing logic. */
 
-  const mouseUpHandler = (event: MouseEvent) => {
-    canvasState.isMouseDown = false;
-    canvasState.prevPoint = null;
-
-    const rect = canvasState.canvasRef?.getBoundingClientRect();
-    if (!rect) {
+  const onMouseDown = (event: MouseEvent) => {
+    if (!canvasState.canvasRef) {
       return;
     }
-    const mouse: MouseTuple = [
-      Math.round(event.clientX - rect.left),
-      Math.round(event.clientY - rect.top),
-    ];
-
-    if (canvasState.path) {
-      canvasState?.path.push(mouse); // Continue tracking the path coords.
-      // console.log(canvasState.path);
-      canvasState.paths.push(canvasState.path);
-      console.log(canvasState.paths);
+    const mousePosition = getMousePosition(canvasState, event);
+    if (!mousePosition) {
+      return;
     }
+    canvasState.path = [mousePosition]; // start the path as origin.
+    canvasState.isMouseDown = true;
   };
 
   const mouseMoveHandler = (event: MouseEvent) => {
     if (!canvasState.isMouseDown) {
       return;
     }
-
     const currentPoint = computePointInCanvas(event);
     const ctx = canvasState.canvasRef?.getContext("2d");
-    const rect = canvasState.canvasRef?.getBoundingClientRect();
+    if (!ctx || !currentPoint) {
+      return;
+    }
+    canvasState.currentPoint = currentPoint;
+    const mousePosition = getMousePosition(canvasState, event);
+    if (!mousePosition) {
+      return;
+    }
+    if (canvasState.path) {
+      canvasState?.path.push(mousePosition); // Continue tracking the path coords.
+    }
+    callback({
+      ctx,
+      currentPoint: canvasState.currentPoint,
+      prevPoint: canvasState.prevPoint,
+      path: canvasState.path,
+    });
+    canvasState.prevPoint = currentPoint;
+  };
 
-    if (!ctx || !currentPoint || !rect) {
+  const mouseUpHandler = (event: MouseEvent) => {
+    canvasState.isMouseDown = false;
+    canvasState.prevPoint = null;
+    if (!canvasState.canvasRef) {
+      return;
+    }
+    const mousePosition = getMousePosition(canvasState, event);
+    if (!mousePosition) {
       return;
     }
 
-    const mouse: MouseTuple = [
-      Math.round(event.clientX - rect.left),
-      Math.round(event.clientY - rect.top),
-    ];
     if (canvasState.path) {
-      canvasState?.path.push(mouse); // Continue tracking the path coords.
-      // console.log(canvasState.path);
-    }
+      canvasState?.path.push(mousePosition); // Continue tracking the path coords.
 
-    onDraw({ ctx, currentPoint, prevPoint: canvasState.prevPoint });
-    canvasState.prevPoint = currentPoint;
+      // const distance = Math.sqrt(
+      //   (currentPoint.x - prevPoint.x) ** 2 + (currentPoint.y - prevPoint.y) ** 2
+      // );
+      // lerp(mousePosition[0], mousePosition[1], );
+
+      canvasState.paths.push(canvasState.path);
+    }
   };
 
   /* Add/Remove event listeners. */
@@ -103,21 +124,6 @@ export const useDrawStore = (onDraw: DrawEventHandler): UseDrawResult => {
     }
   };
 
-  const onMouseDown = (event: MouseEvent) => {
-    if (!canvasState.canvasRef) {
-      return;
-    }
-    const rect = canvasState.canvasRef.getBoundingClientRect();
-    const mouse: MousePosition = [
-      Math.round(event.clientX - rect.left),
-      Math.round(event.clientY - rect.top),
-    ];
-    // console.log(mouse);
-    canvasState.path = [mouse]; // start the path as origin.
-
-    canvasState.isMouseDown = true;
-  };
-
   const onClear = handleOnClear(canvasState);
 
   return {
@@ -126,6 +132,21 @@ export const useDrawStore = (onDraw: DrawEventHandler): UseDrawResult => {
     onClear,
   };
 };
+
+function getMousePosition(
+  canvasState: AppCanvasState,
+  event: MouseEvent
+): MousePosition | undefined {
+  const rect = canvasState.canvasRef?.getBoundingClientRect();
+  if (!rect) {
+    return;
+  }
+  const mouse: MouseTuple = [
+    Math.round(event.clientX - rect.left),
+    Math.round(event.clientY - rect.top),
+  ];
+  return mouse;
+}
 
 function handleOnClear(canvasDrawState: AppCanvasState) {
   return () => {
