@@ -64,13 +64,16 @@ h1 {
   text-align: center;
 }
 
-.logo {
+.logo > a {
   font-family: monospace;
   will-change: filter;
   transition: filter 300ms;
-  font-size: medium;
-  /* height: 6em; */
+  font-size: large;
+  color: white !important;
   padding: 1em;
+  padding-block: 0;
+  margin-block-end: 0;
+  /* height: 6em; */
 }
 .logo:hover {
   filter: drop-shadow(0 0 2em #646cffaa);
@@ -88,40 +91,46 @@ h1 {
 }
 
 header {
-  z-index: 50;
   --gap: 0.618rem;
+  z-index: 50;
   align-items: center;
   border-radius: var(--gap);
-  /* border: 1px solid #333333; */
-  /* box-shadow: 0 0 10px 2px rgba(0, 0, 0, 0.15); */
   display: flex;
   gap: var(--gap);
   justify-content: space-between;
-  margin: calc(var(--gap) / 2);
+  margin: calc(var(--gap) / 8);
   max-width: 100vw;
-  padding-block: calc(var(--gap) / 2);
-  padding-inline: var(--gap);
+  padding-block: calc(var(--gap) / 8);
+  padding-inline: calc(var(--gap) / 8);
+  margin-block-start: calc(var(--gap) / 2);
   position: absolute;
   top: 0;
+  width: 100vw;
+  /* border: 1px solid #333333; */
+  /* box-shadow: 0 0 10px 2px rgba(0, 0, 0, 0.15); */
   /* width: 61.8vw; */
 }
 
 .controls {
-  background: rgba(0, 0, 0, 0.15);
   display: grid;
-  /* grid-template-columns: repeat(3, 1fr); */
   grid-auto-flow: column;
+  left: 50%;
+  right: 50%;
+  margin-inline: auto;
+  top: 0;
+  position: absolute;
   align-items: center;
+  justify-content: space-around;
   border-radius: 0.5rem;
-  gap: 0.5rem;
+  gap: 1.5rem;
   padding-inline: 0.5rem;
   padding-block: 0.5rem;
-  width: min-content;
 }
 
 .controls > * {
-  justify-self: start;
+  justify-self: center;
 }
+
 .controls > *:hover {
   background-color: rgba(0, 0, 0, 0.15);
 }
@@ -131,9 +140,21 @@ header {
 #controlsLineWidthPicker {
   width: 2rem;
   height: 2rem;
-  font-size: smaller;
+  /* font-size: smaller; */
 }
+
+input:is(#controlsLineWidthPicker) {
+  background: none !important;
+  fill: none !important;
+}
+
 #controlsColorPickerInput {
+  width: 1rem;
+  height: 1rem;
+}
+
+#controlsUndoHistoryButton > svg,
+#controlsRedoHistoryButton > svg {
   width: 1rem;
   height: 1rem;
 }

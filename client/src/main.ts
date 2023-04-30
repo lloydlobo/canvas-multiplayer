@@ -388,22 +388,25 @@ function setupHomePage(): void {
 <div class="wrapper">
 
   <header class="header">
-    <h1 class="logo">
-      canvas multiplayer
-    </h1>
-    <div class="controls">
-      <button id="controlsClearButton" title="Clear">
-        <svg class="svg-icon" stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round"
-          stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
-          <polyline points="3 6 5 6 21 6"></polyline>
-          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-          <line x1="10" y1="11" x2="10" y2="17"></line>
-          <line x1="14" y1="11" x2="14" y2="17"></line>
+    <div class="logo-wrapper" style="display: grid; justify-content: space-between; align-items: center;">
+      <h1 class="logo" style="display: flex; justify-content: center; align-items: center;">
+        <a href="/" style="" title="Go Home">
+          canvas multiplayer
+        </a>
+      </h1>
+      <a href="/" style="" target="_blank" title="Open in new tab" rel="noopener noreferrer">
+        <span style="font-size: 60%">Open another client</span>
+        <svg width="12" height="12" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+          stroke="currentColor" class="w-6 h-6">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
         </svg>
-      </button>
+      </a>
+    </div>
+    <div class="controls">
       <input type="color" value="#eeeeee" name="CromePicker" title="Color picker" id="controlsColorPickerInput" />
-      <input type="number" min="3" max="9" title="Line width" value="2" name="lineWidthPicker" id="controlsLineWidthPicker" />
-      <input type="checkbox" name="fullscreen" id="controlsFullscreenCheckbox" />
+      <input type="number" min="2" max="9" title="Line width" value="4" name="lineWidthPicker" id="controlsLineWidthPicker" />
+      <!-- <input type="text" inputmode="numeric" pattern="[0-9]*" min="3" max="9" title="Line width" value="2" name="lineWidthPicker" id="controlsLineWidthPicker" /> -->
+      <input style="display: none" type="checkbox" name="fullscreen" id="controlsFullscreenCheckbox" />
       <button name="undoHistory" id="controlsUndoHistoryButton" title="Undo History">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
           class="w-6 h-6">
@@ -414,6 +417,15 @@ function setupHomePage(): void {
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
           class="w-6 h-6">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 15l6-6m0 0l-6-6m6 6H9a6 6 0 000 12h3" />
+        </svg>
+      </button>
+      <button id="controlsClearButton" title="Clear">
+        <svg class="svg-icon" stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round"
+          stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          <line x1="10" y1="11" x2="10" y2="17"></line>
+          <line x1="14" y1="11" x2="14" y2="17"></line>
         </svg>
       </button>
     </div>
