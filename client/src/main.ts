@@ -138,6 +138,28 @@ const handleDrawLine = ({
   ctx.fill();
 };
 
+/**
+ * To vary t based on the position i of the mousemove event, we can use a
+ * mathematical formula that maps the values of i to t in a non-linear way.
+ * One such formula could be: t = (1 - cos(pi * i / midpoint)) / 2 where
+ * midpoint is the point where the value of t is maximum. This formula maps the
+ * values of i such that when i is near 0, t is less, when i is at midpoint, t
+ * is max, and when i is max, t is less. The formula uses cosine to produce a
+ * non-linear mapping between i and t. The pi/2 term in the formula ensures
+ * that the maximum value of t is 1. The (1 - ...) term is used to invert the
+ * function, so that t is less at the beginning and end of the range, and
+ * maximum at the midpoint.
+ *
+ * For example, if the range of i is from 0 to 100 and the midpoint is 50, then
+ * the value of t for i = 0 is 0, for i = 50 is 1, and for i = 100 is 0.
+ *
+ * @usage const t = mapT(i, numPoints, midpoint);
+ */
+const mapT = (i: number, numPoints: number, midpoint: number) => {
+  const angle = (Math.PI * i) / midpoint;
+  return (1 - Math.cos(angle)) / 2;
+};
+
 // NOTE: We stroke a single line after the points are connected.
 const handleDraw = {
   path: (
@@ -165,8 +187,9 @@ const handleDraw = {
 
         const hasPseudoDelay = true; // NOTE: Toggle it. This is a temporary solution.
         if (hasPseudoDelay) {
-          const acceleration = lerp(0.5, 0.5 * 1.618, t);
           const friction = 0.8;
+          const tEaseInOut = mapT(i, numPoints, path.length / 2); // 0.0 -> 1.0 -> 0.0 -> 1.0 -> 0.0 and so on..
+          const acceleration = lerp(0.5, 0.5 * 1.618 * friction, tEaseInOut); // lerp(0.5, 0.647, t);// In this code, midpoint is calculated as half the value of numPoints, which represents the total number of points between two points on the canvas. The value of t is then calculated using mapT, and lerp is called with the calculated value of t to interpolate between two values of acceleration.
           const velocity = friction * acceleration * distance;
           const deltaX = velocity * Math.cos(t);
           const deltaY = velocity * Math.sin(t);
