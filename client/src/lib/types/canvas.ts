@@ -21,16 +21,31 @@ export type DrawEventHandler = (draw: Draw) => void;
 
 export type UseDrawResult = {
   setCanvasState: (canvas: HTMLCanvasElement | null) => void;
-  onMouseDown: () => void;
+  onMouseDown: (event: MouseEvent) => void;
   onClear: () => void;
 };
+
+export type MouseTuple = [number, number];
 
 /** Initial state. */
 export type AppCanvasState = {
   isMouseDown: boolean;
   prevPoint: Point | null;
   canvasRef: HTMLCanvasElement | null;
+  path: MouseTuple[] | null;
+  paths: MouseTuple[][];
 };
+
+// Create a tuple with 2 members.
+// const tuple = <T, U>(t: T, u: U): [T, U] => [t, u];
+// // Create a tuple with 3 members.
+// const tuple3 = <T, U, V>(t: T, u: U, v: V): [T, U, V] => [t, u, v];
+// // Create a tuple with 4 members.
+// const tuple4 = <T, U, V, W>(t: T, u: U, v: V, w: W): [T, U, V, W] => [t, u, v, w];
+// // Create a tuple with 5 members.
+// const tuple5 = <T, U, V, W, X>( t: T, u: U, v: V, w: W, x: X): [T, U, V, W, X] => [t, u, v, w, x];
+// // Create a tuple with 6 members.
+// const tuple6 = <T, U, V, W, X, Y>( t: T, u: U, v: V,
 
 export enum MouseView {
   Default = "default",

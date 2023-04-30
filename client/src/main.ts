@@ -1,5 +1,6 @@
 import * as dotenv from "dotenv";
 import { io, Socket } from "socket.io-client";
+import { cleanUpProfanity } from "./helpers.ts";
 import { useDrawStore } from "./hooks/use-draw-store.ts";
 import {
   Draw,
@@ -287,14 +288,23 @@ socket.on("chat_message", (msg) => {
 formRef?.addEventListener("submit", (event) => {
   event.preventDefault();
   if (inputRef?.value) {
+    const input = inputRef.value;
+
+    let filteredInput = "";
+    input.split(" ").forEach((word) => {
+      filteredInput += cleanUpProfanity(word, "*", 2);
+      filteredInput += " "; // Add space between words.
+    });
+
     const now = new Date();
     const timestamp = `${now.getHours().toString().padStart(2, "0")}:${now
       .getMinutes()
       .toString()
       .padStart(2, "0")}`;
-    const msg = `${timestamp}: ${inputRef.value}`;
 
+    const msg = `${timestamp}: ${filteredInput}`;
     socket.emit("chat_message", msg);
+
     inputRef.value = ""; // Clear user input.
   }
 });
