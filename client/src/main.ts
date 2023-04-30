@@ -145,21 +145,35 @@ const handleDraw = {
     path: NonNullable<AppCanvasState["path"]>,
     color = "yellow"
   ) => {
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
     ctx.strokeStyle = color;
     ctx.lineWidth = controlsLineWidthPicker.valueAsNumber || 2;
 
     ctx.beginPath();
     ctx.moveTo(...path[0]);
-
     const hasSmoothCurves = true; // NOTE: Toggle it. This is a temporary solution.
     if (hasSmoothCurves) {
       for (let i = 2; i < path.length; i++) {
         const prevPoint: Point = { x: path[i - 1][0], y: path[i - 1][1] };
         const currentPoint: Point = { x: path[i][0], y: path[i][1] };
-        const { numPoints } = lerpIncrementalPath({ currentPoint, prevPoint, incrementSize: 5, }); //prettier-ignore
+        const { numPoints,distance } = lerpIncrementalPath({ currentPoint, prevPoint, incrementSize: 5, }); //prettier-ignore
+
         const t = i / numPoints;
         const x = lerp(prevPoint.x, currentPoint.x, t);
         const y = lerp(prevPoint.y, currentPoint.y, t);
+
+        const hasPseudoDelay = true; // NOTE: Toggle it. This is a temporary solution.
+        if (hasPseudoDelay) {
+          const acceleration = lerp(0.5, 0.5 * 1.618, t);
+          const friction = 0.8;
+          const velocity = friction * acceleration * distance;
+          const deltaX = velocity * Math.cos(t);
+          const deltaY = velocity * Math.sin(t);
+          const deltaTransposition = Math.sqrt(deltaX) * Math.sqrt(deltaY);
+          const pseudoDistance = (Math.sqrt(path.length ** 2 + (numPoints * distance) ** 2) / velocity) * deltaTransposition; // prettier-ignore
+          for (let i = 0; i < pseudoDistance * t; i++) {} // Expensive operation to simulate delay...
+        }
         ctx.lineTo(x, y);
       }
     } else {
@@ -167,14 +181,12 @@ const handleDraw = {
         ctx.lineTo(...path[i]);
       }
     }
-
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
     ctx.stroke();
 
+    /* Draw a dot at starting point of each path. */
+
     ctx.fillStyle = controlsColorPickerInput.value || colorState || color;
-    ctx.beginPath();
-    // ctx.arc(prevPoint.x, prevPoint.y, 1, 0, 2 * Math.PI);
+    ctx.beginPath(); // ctx.arc(prevPoint.x, prevPoint.y, 1, 0, 2 * Math.PI);
     ctx.arc(path[0][0], path[0][1], 1, 0, 2 * Math.PI);
 
     ctx.fill();
