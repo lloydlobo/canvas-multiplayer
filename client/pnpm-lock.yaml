@@ -1,5 +1,9 @@
 lockfileVersion: '6.0'
 
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
 dependencies:
   socket.io-client:
     specifier: ^4.6.1
@@ -13,8 +17,8 @@ devDependencies:
     specifier: ^5.0.2
     version: 5.0.2
   vite:
-    specifier: ^4.3.2
-    version: 4.3.2(@types/node@18.16.1)
+    specifier: ^4.3.9
+    version: 4.3.9(@types/node@18.16.1)
 
 packages:
 
@@ -359,8 +363,8 @@ packages:
     hasBin: true
     dev: true
 
-  /vite@4.3.2(@types/node@18.16.1):
-    resolution: {integrity: sha512-9R53Mf+TBoXCYejcL+qFbZde+eZveQLDYd9XgULILLC1a5ZwPaqgmdVpL8/uvw2BM/1TzetWjglwm+3RO+xTyw==}
+  /vite@4.3.9(@types/node@18.16.1):
+    resolution: {integrity: sha512-qsTNZjO9NoJNW7KnOrgYwczm0WctJ8m/yqYAMAK9Lxt4SoySUfS5S8ia9K7JHpa3KEeMfyF8LoJ3c5NeBJy6pg==}
     engines: {node: ^14.18.0 || >=16.0.0}
     hasBin: true
     peerDependencies:
